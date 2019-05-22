@@ -11,5 +11,5 @@ This will launch the slave and respond to data being send to I2C address 0x80 (w
 Data being received is printed to the console.
 
 Options for control:
-x = Exit the program and close communication
-r = Send the GetRegelaar package which should retrieve the node information from connect node 0x82 (Warmtepomp, Autotemp)
+*x = Exit the program and close communication
+*r = Send the GetRegelaar package which should retrieve the node information from connect node 0x82 (Warmtepomp, Autotemp)
