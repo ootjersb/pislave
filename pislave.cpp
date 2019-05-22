@@ -2,6 +2,8 @@
 #include <pigpio.h>
 #include <iostream>
 #include <unistd.h>
+#include <stdio.h>
+#include <string.h>
 
 using namespace std;
 
@@ -14,14 +16,18 @@ int getControlBits(int, bool);
 void *work(void *);
 void SendGetRegelaar();
 
-const char getRegelaar[8] = {0x60,0x80,0x90,0xE0,0x04,0x00,0xAC,\0}
+// [0x82 0x80 0x90 0xE0 0x04 0x00 0x8A]
+const char getRegelaar[8] = {0x82,0x80,0x90,0xE0,0x04,0x00,0x8A,0x00};
 
-const int slaveAddress = 0x40; // <-- Your address of choice
+const int slaveAddress = 0x40; // <-- 0x40 is 7 bit address of 0x80
 bsc_xfer_t xfer; // Struct to control data flow
 int command = 0; // -1=exit, 0=read mode, 1=sendgetregelaar
 
 int main() {
     pthread_t cThread;
+
+    gpioInitialise();
+    cout << "Initialized GPIOs\n";
 
     cout << "Starting a new thread to receive data" << endl;
     if(pthread_create(&cThread, NULL, work, NULL))
@@ -38,7 +44,7 @@ int main() {
     {
         getline(cin, strinput);
         cout << "You entered: " << strinput << endl;
-        if (strinput/compare(getregelaar_command))
+        if (!strinput.compare(getregelaar_command))
         {
             command = 1;
         }
@@ -54,7 +60,7 @@ int main() {
 void SendGetRegelaar()
 {
     cout << "SendGetRegelaar" << endl;
-    strcpy(xfer.txBuf, getRegelaar);
+    memcpy(xfer.txBuf, getRegelaar, 7);
     xfer.txCnt = 7;
     int status = bscXfer(&xfer);
     cout << "status=" << status << endl;
@@ -64,8 +70,6 @@ void *work(void * parm)
 {
     //  TODO: Add the pthread_kill to signal this thread instead of just shutting down
 
-    gpioInitialise();
-    cout << "Initialized GPIOs\n";
     // Close old device (if any)
     xfer.control = getControlBits(slaveAddress, false); // To avoid conflicts when restarting
     bscXfer(&xfer);
@@ -82,8 +86,9 @@ void *work(void * parm)
         char *buffer = new char[1000];
         while(command!=-1)
         {
-            if (command==1)
+            if (command==1) // GetRegelaar
             {
+                command = 0; // go back to read mode again
                 SendGetRegelaar();
             }
 
@@ -130,9 +135,6 @@ void *work(void * parm)
 
 
 void closeSlave() {
-    gpioInitialise();
-    cout << "Initialized GPIOs\n";
-
     xfer.control = getControlBits(slaveAddress, false);
     bscXfer(&xfer);
     cout << "Closed slave.\n";
