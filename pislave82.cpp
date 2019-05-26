@@ -8,22 +8,19 @@
 using namespace std;
 
 /*
-    g++ -l pthread -l pigpio -o pislave pislave.cpp
+    g++ -l pthread -l pigpio -o pislave82 pislave82.cpp
 */
 
 void closeSlave();
 int getControlBits(int, bool);
 void *work(void *);
-void SendGetRegelaar();
 
-// [0x82 0x80 0x90 0xE0 0x04 0x00 0x8A]
-const char getRegelaar[8] = {0x82,0x80,0x90,0xE0,0x04,0x00,0x8A,0x00};
-
-const int slaveAddress = 0x40; // <-- 0x40 is 7 bit address of 0x80
+const int slaveAddress = 0x41; // <-- 0x41 is 7 bit address of 0x82
 bsc_xfer_t xfer; // Struct to control data flow
-int command = 0; // -1=exit, 0=read mode, 1=sendgetregelaar
+int command = 0; // -1=exit, 0=read mode
 
-int main() {
+int main() 
+{
     pthread_t cThread;
 
     gpioInitialise();
@@ -37,17 +34,12 @@ int main() {
 
     string strinput;
     string exit_command = "x";
-    string getregelaar_command = "r";
 
-    cout << "Enter a command (r=getregelaar; x=exit): ";
+    cout << "Enter a command (x=exit): ";
     while (strinput.compare(exit_command))
     {
         getline(cin, strinput);
         cout << "You entered: " << strinput << endl;
-        if (!strinput.compare(getregelaar_command))
-        {
-            command = 1;
-        }
     }
     cout << "stopping" << endl;
     command = -1;
@@ -55,15 +47,6 @@ int main() {
     closeSlave();
 
     return 0;
-}
-
-void SendGetRegelaar()
-{
-    cout << "SendGetRegelaar" << endl;
-    memcpy(xfer.txBuf, getRegelaar, 7);
-    xfer.txCnt = 7;
-    int status = bscXfer(&xfer);
-    cout << "status=" << status << endl;
 }
 
 void *work(void * parm)
@@ -86,12 +69,6 @@ void *work(void * parm)
         char *buffer = new char[1000];
         while(command!=-1)
         {
-            if (command==1) // GetRegelaar
-            {
-                command = 0; // go back to read mode again
-                SendGetRegelaar();
-            }
-
             bscXfer(&xfer);
             if(xfer.rxCnt > 0) 
             {
@@ -111,7 +88,7 @@ void *work(void * parm)
                     if (receivedcount>0)
                     {
                         // write buffer and clear all
-                        cout << "[0x80";
+                        cout << "[0x82";
                         for (int i = 0; i < receivedcount; i++)
                             printf(" 0x%02X", buffer[i]);
                         cout << "]\n";
