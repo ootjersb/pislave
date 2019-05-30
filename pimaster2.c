@@ -16,6 +16,8 @@ const char MESSAGE_OPHALENSERIENUMMER[6] = {0x80, 0x90, 0xE1, 0x04, 0x00, 0x89};
 const int MESSAGE_OPHALENSERIENUMMER_LENGTH = 6;
 const char MESSAGE_OPHALENSETTING0[25] = {0x80,0xA4,0x10,0x04,0x13,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x33};
 const int MESSAGE_OPHALENSETTING0_LENGTH = 25;
+const char MESSAGE_OPHALENSETTING50[25] = {0x80, 0xA4, 0x10, 0x04, 0x13, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x32, 0x00, 0x01};
+const int MESSAGE_OPHALENSETTING50_LENGTH = 25;
 const char MESSAGE_OPHALENSETTING69[25] = {0x80,0xA4, 0x10, 0x04, 0x13, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x45, 0x00, 0xEE};
 const int MESSAGE_OPHALENSETTING69_LENGTH = 25;
 const char MESSAGE_OPHALENDATATYPE[6] = {0x80,0xA4,0x00,0x04,0x00,0x56};
@@ -38,6 +40,7 @@ void PrintHelp();
 #define KEY_R 114
 #define KEY_S 115
 #define KEY_0 48
+#define KEY_5 53
 #define KEY_6 54
 #define KEY_X 120
 #define KEY_D 100	// ophalen datatype
@@ -94,6 +97,11 @@ int main()
 				printf("Send message Ophalen Setting 0");
 			break;
 			
+		case KEY_5:
+			if (SendMessage(file_i2c, MESSAGE_OPHALENSETTING50, MESSAGE_OPHALENSETTING50_LENGTH)==0)
+				printf("Send message Ophalen Setting 50");
+			break;
+
 		case KEY_6:
 			if (SendMessage(file_i2c, MESSAGE_OPHALENSETTING69, MESSAGE_OPHALENSETTING69_LENGTH)==0)
 				printf("Send message Ophalen Setting 69");
@@ -142,6 +150,7 @@ void PrintHelp()
 	printf("r = GetRegelaar\n");
 	printf("s = Ophalen Serienummer\n");
 	printf("0 = Ophalen Setting 0\n");
+	printf("5 = Ophalen Setting 50\n");
 	printf("6 = Ophalen Setting 69\n");
 	printf("d = Ophalen DataType\n");
 	printf("a = Ophalen datalog\n");
