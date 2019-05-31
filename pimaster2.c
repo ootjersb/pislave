@@ -1,3 +1,4 @@
+// gcc pimaster2.c -o pimaster2
 #include <unistd.h>				//Needed for I2C port
 #include <fcntl.h>				//Needed for I2C port
 #include <sys/ioctl.h>			//Needed for I2C port
@@ -5,10 +6,6 @@
 #include <stdio.h>
 
 #define	I2C_ADDRESS	0x41
-
-/*
-gcc pimaster2.c -o pimaster2
-*/
 
 const char MESSAGE_GETREGELAAR[6] = {0x80, 0x90, 0xE0, 0x04, 0x00, 0x8A};
 const int MESSAGE_GETREGELAAR_LENGTH = 6;
@@ -30,11 +27,13 @@ const char MESSAGE_VRAAGVENTIELAANWEZIG[10] = {0x80, 0xC0, 0x30, 0x04, 0x04, 0x0
 const int MESSAGE_VRAAGVENTIELAANWEZIG_LENGTH = 10;
 const char MESSAGE_VRAAGCOUNTERS[6] = {0x80, 0xC2, 0x10, 0x04, 0x00, 0x28};
 const int MESSAGE_VRAAGCOUNTERS_LENGTH = 6;
-
+char ophalenSettingMessage[26] = { 0x82, 0x80, 0xA4, 0x10, 0x04, 0x13, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x33 };
 
 int SendMessage(int fd, const char *message, int length);
 int ReadBytes(int fd, int length);
 void PrintHelp();
+char *ConstructOphalensetting(int settingNr);
+char CalculateChecksum(int length);
 
 #define KEY_QUESTION 63
 #define KEY_R 114
@@ -48,6 +47,7 @@ void PrintHelp();
 #define KEY_C 99	// vraag config
 #define KEY_I 105	// vraag ventielaanwezig
 #define KEY_V 118 	// vraag counters
+#define KEY_O 111	// ophalen alle settings
 
 int main()
 {
@@ -131,6 +131,17 @@ int main()
 			if (SendMessage(file_i2c, MESSAGE_VRAAGCOUNTERS, MESSAGE_VRAAGCOUNTERS_LENGTH)==0)
 				printf("Send message vraag counters");
 			break;
+			
+		case KEY_O:
+			for (int i=0;i<=0x94;i++)
+			{
+				ConstructOphalensetting(i);
+				if (SendMessage(file_i2c, ophalenSettingMessage+1, 25)==0)
+					printf("Send message Ophalensetting(%d)\n", i);
+				else
+					break;
+				sleep(5);	// 1 second
+			}
 
 		case KEY_X:
 			printf("Stopping\n");
@@ -149,6 +160,7 @@ void PrintHelp()
 	printf("? = Help\n");
 	printf("r = GetRegelaar\n");
 	printf("s = Ophalen Serienummer\n");
+	printf("o = Ophalen alle settings (0x00 tot 0x94)");
 	printf("0 = Ophalen Setting 0\n");
 	printf("5 = Ophalen Setting 50\n");
 	printf("6 = Ophalen Setting 69\n");
@@ -193,4 +205,23 @@ int ReadBytes(int fd, int length)
 		printf("Data read: %s\n", buffer);
 		return 0;
 	}
+}
+
+char *ConstructOphalensetting(int settingNr)
+{
+	ophalenSettingMessage[17+6] = (char) settingNr;
+	ophalenSettingMessage[25] = CalculateChecksum(25);
+}
+
+char CalculateChecksum(int length)
+{
+	int total = 0;
+	for (int i = 0; i<length; i++)
+	{
+		total += (int) ophalenSettingMessage[i];
+	}
+	int checksum = 256 - (total % 256);
+	if (checksum == 256)
+		checksum = 0;
+	return (char) checksum;
 }

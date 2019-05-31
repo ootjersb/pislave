@@ -1,23 +1,22 @@
+// g++ -l pthread -l pigpio -o pislave pislave.cpp
 #include <pthread.h>
 #include <pigpio.h>
 #include <iostream>
 #include <unistd.h>
 #include <stdio.h>
-#include <string.h>
+#include <string>
+#include <sstream>
+#include <iomanip>
+#include <fstream>
 
 using namespace std;
-
-/*
-    g++ -l pthread -l pigpio -o pislave pislave.cpp
-*/
 
 void closeSlave();
 int getControlBits(int, bool);
 void *work(void *);
-void SendGetRegelaar();
-
-// [0x82 0x80 0x90 0xE0 0x04 0x00 0x8A]
-const char getRegelaar[8] = {0x82,0x80,0x90,0xE0,0x04,0x00,0x8A,0x00};
+void writeToFile(char *filename, string data);
+void processIncomingMessage(char *buffer, int length);
+string bufferToReadableString(char *buffer, int length);
 
 const int slaveAddress = 0x40; // <-- 0x40 is 7 bit address of 0x80
 bsc_xfer_t xfer; // Struct to control data flow
@@ -39,7 +38,7 @@ int main() {
     string exit_command = "x";
     string getregelaar_command = "r";
 
-    cout << "Enter a command (r=getregelaar; x=exit): ";
+    cout << "Enter a command (x=exit): ";
     while (strinput.compare(exit_command))
     {
         getline(cin, strinput);
@@ -55,15 +54,6 @@ int main() {
     closeSlave();
 
     return 0;
-}
-
-void SendGetRegelaar()
-{
-    cout << "SendGetRegelaar" << endl;
-    memcpy(xfer.txBuf, getRegelaar, 7);
-    xfer.txCnt = 7;
-    int status = bscXfer(&xfer);
-    cout << "status=" << status << endl;
 }
 
 void *work(void * parm)
@@ -86,12 +76,6 @@ void *work(void * parm)
         char *buffer = new char[1000];
         while(command!=-1)
         {
-            if (command==1) // GetRegelaar
-            {
-                command = 0; // go back to read mode again
-                SendGetRegelaar();
-            }
-
             bscXfer(&xfer);
             if(xfer.rxCnt > 0) 
             {
@@ -115,6 +99,7 @@ void *work(void * parm)
                         for (int i = 0; i < receivedcount; i++)
                             printf(" 0x%02X", buffer[i]);
                         cout << "]\n";
+						processIncomingMessage(buffer, receivedcount);
 
                         receivedcount = 0;
                     }
@@ -180,4 +165,46 @@ int getControlBits(int address /* max 127 */, bool open) {
         flags = /*BK:*/ (1 << 7) | /*I2:*/ (0 << 2) | /*EN:*/ (0 << 0);
 
     return (address << 16 /*= to the start of significant bits*/) | flags;
+}
+
+void processIncomingMessage(char *buffer, int length)
+{
+	char filename[128];
+	string messagename;
+	if (buffer[1] == 0xA4 && buffer[2] == 0x10)	// ophalen setting
+	{
+		messagename = "OphalenSetting";
+		sprintf(filename, "data/%02X%02X-%02X.txt", buffer[1], buffer[2], buffer[17+5]);
+	}
+	else
+	{
+		messagename = "Unknown";
+		sprintf(filename, "data/%02X%02X.txt", buffer[1], buffer[2]);
+	}
+	string data = bufferToReadableString(buffer, length);
+
+	cout << "processing message " << messagename << " to " << filename << endl;
+	cout << data << endl;
+	writeToFile(filename, data);
+}
+
+string bufferToReadableString(char *buffer, int length)
+{
+	std::stringstream ss;
+	ss << std::hex << std::setfill('0');
+	ss << "[0x80";
+	for (int i = 0; i < length; ++i)
+	{
+		ss << " 0x" << uppercase << std::setw(2) << static_cast<unsigned>(buffer[i]);
+	}
+	ss << "]";
+	return ss.str();
+}
+
+void writeToFile(char *filename, string data)
+{
+	ofstream myfile;
+	myfile.open (filename);
+	myfile << data;
+	myfile.close();
 }
