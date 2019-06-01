@@ -28,12 +28,14 @@ const int MESSAGE_VRAAGVENTIELAANWEZIG_LENGTH = 10;
 const char MESSAGE_VRAAGCOUNTERS[6] = {0x80, 0xC2, 0x10, 0x04, 0x00, 0x28};
 const int MESSAGE_VRAAGCOUNTERS_LENGTH = 6;
 char ophalenSettingMessage[26] = { 0x82, 0x80, 0xA4, 0x10, 0x04, 0x13, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x33 };
+char ophalenConfigMessage[11] = { 0x82,0x80, 0xC0, 0x30, 0x04, 0x04, 0x01, 0x00, 0x00, 0x01, 0x04 };
 
 int SendMessage(int fd, const char *message, int length);
 int ReadBytes(int fd, int length);
 void PrintHelp();
 char *ConstructOphalensetting(int settingNr);
-char CalculateChecksum(int length);
+char CalculateChecksum(int length, char *buffer);
+char *ConstructOphalenConfig(int settingNr, int counterNr);
 
 #define KEY_QUESTION 63
 #define KEY_R 114
@@ -48,6 +50,7 @@ char CalculateChecksum(int length);
 #define KEY_I 105	// vraag ventielaanwezig
 #define KEY_V 118 	// vraag counters
 #define KEY_O 111	// ophalen alle settings
+#define KEY_N 110 	// ophalen alle configs
 
 int main()
 {
@@ -142,6 +145,26 @@ int main()
 					break;
 				sleep(5);	// 1 second
 			}
+			
+		case KEY_N:
+			for (int i=0;i<=0x26;i++)
+			{
+				ConstructOphalenConfig(1, i);
+				if (SendMessage(file_i2c, ophalenConfigMessage+1, 10)==0)
+					printf("Send message OphalenConfig(1, %d)\n", i);
+				else
+					break;
+				sleep(5);	// 1 second
+			}
+			for (int i=0;i<=0x29;i++)
+			{
+				ConstructOphalenConfig(0, i);
+				if (SendMessage(file_i2c, ophalenConfigMessage+1, 10)==0)
+					printf("Send message OphalenConfig(0, %d)\n", i);
+				else
+					break;
+				sleep(5);	// 1 second
+			}
 
 		case KEY_X:
 			printf("Stopping\n");
@@ -167,6 +190,7 @@ void PrintHelp()
 	printf("d = Ophalen DataType\n");
 	printf("a = Ophalen datalog\n");
 	printf("c = Vraag config\n");
+	printf("n = Vraag alle configs (warmtepomp)\n");
 	printf("i = Ventiel aanwezig\n");
 	printf("v = Vraag counters\n");
 	printf("x = Exit\n");
@@ -207,18 +231,27 @@ int ReadBytes(int fd, int length)
 	}
 }
 
+char *ConstructOphalenConfig(int settingNr, int counterNr)
+{
+	// data byte 0 is called settingNr
+	// data byte 2 is called counterNr
+	ophalenConfigMessage[6+0] = (char) settingNr;
+	ophalenConfigMessage[6+2] = (char) counterNr;
+	ophalenConfigMessage[10] = CalculateChecksum(10, ophalenConfigMessage);
+}
+
 char *ConstructOphalensetting(int settingNr)
 {
 	ophalenSettingMessage[17+6] = (char) settingNr;
-	ophalenSettingMessage[25] = CalculateChecksum(25);
+	ophalenSettingMessage[25] = CalculateChecksum(25, ophalenSettingMessage);
 }
 
-char CalculateChecksum(int length)
+char CalculateChecksum(int length, char *buffer)
 {
 	int total = 0;
 	for (int i = 0; i<length; i++)
 	{
-		total += (int) ophalenSettingMessage[i];
+		total += (int) buffer[i];
 	}
 	int checksum = 256 - (total % 256);
 	if (checksum == 256)

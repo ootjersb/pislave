@@ -176,6 +176,11 @@ void processIncomingMessage(char *buffer, int length)
 		messagename = "OphalenSetting";
 		sprintf(filename, "data/%02X%02X-%02X.txt", buffer[1], buffer[2], buffer[17+5]);
 	}
+	else if (buffer[1] == 0xC0 && buffer[2] == 0x30) // ophalen config
+	{
+		messagename = "OphalenConfig";
+		sprintf(filename, "data/%02X%02X-%02X%02X%02X%02X.txt", buffer[1], buffer[2], buffer[5+0], buffer[5+1], buffer[5+2], buffer[5+3]);
+	}
 	else
 	{
 		messagename = "Unknown";
