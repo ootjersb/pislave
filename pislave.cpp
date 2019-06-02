@@ -181,6 +181,14 @@ void processIncomingMessage(char *buffer, int length)
 		messagename = "OphalenConfig";
 		sprintf(filename, "data/%02X%02X-%02X%02X%02X%02X.txt", buffer[1], buffer[2], buffer[5+0], buffer[5+1], buffer[5+2], buffer[5+3]);
 	}
+	else if (buffer[1] == 0xA4 && buffer[2] == 0x01) // datalog
+	{
+		messagename = "Datalog";
+		sprintf(filename, "data/%02X%02X.txt", buffer[1], buffer[2]); // TODO: add timestamp??
+		printf("buffer[155]=%d, buffer[156]=%d\n", buffer[155], buffer[156]);
+		float outsideTemp = (((int) buffer[155] << 8) + (int) buffer[156])/100.0;
+		printf("Buitentemperatuur: %.2f\n", outsideTemp);
+	}
 	else
 	{
 		messagename = "Unknown";
