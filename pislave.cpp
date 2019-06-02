@@ -1,13 +1,15 @@
-// g++ -l pthread -l pigpio -o pislave pislave.cpp
+// g++ -l pthread -l pigpio -lcurl -o pislave pislave.cpp
 #include <pthread.h>
 #include <pigpio.h>
 #include <iostream>
 #include <unistd.h>
 #include <stdio.h>
-#include <string>
+#include <string.h>
 #include <sstream>
 #include <iomanip>
 #include <fstream>
+#include <stdlib.h>
+#include <curl/curl.h>
 
 using namespace std;
 
@@ -17,6 +19,7 @@ void *work(void *);
 void writeToFile(char *filename, string data);
 void processIncomingMessage(char *buffer, int length);
 string bufferToReadableString(char *buffer, int length);
+int GetURL(char *myurl);
 
 const int slaveAddress = 0x40; // <-- 0x40 is 7 bit address of 0x80
 bsc_xfer_t xfer; // Struct to control data flow
@@ -115,7 +118,11 @@ void *work(void * parm)
         delete[] buffer;
     }
     else
+	{
         cout << "Failed to open slave!!!\n";
+	}
+	
+	return NULL; // TODO: figure out what should be returned 
 }
 
 
@@ -185,9 +192,20 @@ void processIncomingMessage(char *buffer, int length)
 	{
 		messagename = "Datalog";
 		sprintf(filename, "data/%02X%02X.txt", buffer[1], buffer[2]); // TODO: add timestamp??
-		printf("buffer[155]=%d, buffer[156]=%d\n", buffer[155], buffer[156]);
+		// printf("buffer[155]=%d, buffer[156]=%d\n", buffer[155], buffer[156]);
 		float outsideTemp = (((int) buffer[155] << 8) + (int) buffer[156])/100.0;
 		printf("Buitentemperatuur: %.2f\n", outsideTemp);
+		char domoticzUrl[400];
+		sprintf(domoticzUrl, "http://10.0.0.51:8080/json.htm?type=command&param=udevice&idx=398&nvalue=0&svalue=%.2f", outsideTemp);
+		GetURL(domoticzUrl);
+		
+		int commTellerA = ((int) buffer[161]<<8) + (int) buffer[162];
+		int commTellerB = ((int) buffer[163]<<8) + (int) buffer[164];
+		int commTellerC = ((int) buffer[165]<<8) + (int) buffer[166];
+		int commTellerD = ((int) buffer[167]<<8) + (int) buffer[168];
+		int commTellerE = ((int) buffer[169]<<8) + (int) buffer[170];
+		int commTellerF = ((int) buffer[171]<<8) + (int) buffer[172];
+		printf("Comm tellers A: %d, B: %d, C: %d, D:%d, E: %d, F: %d\n", commTellerA, commTellerB, commTellerC, commTellerD, commTellerE, commTellerF);
 	}
 	else
 	{
@@ -220,4 +238,99 @@ void writeToFile(char *filename, string data)
 	myfile.open (filename);
 	myfile << data;
 	myfile.close();
+}
+
+typedef struct string_buffer_s
+{
+    char * ptr;
+    size_t len;
+} string_buffer_t;
+
+
+static void string_buffer_initialize( string_buffer_t * sb )
+{
+    sb->len = 0;
+    sb->ptr = (char *) malloc(sb->len+1);
+    sb->ptr[0] = '\0';
+}
+
+
+static void string_buffer_finish( string_buffer_t * sb )
+{
+    free(sb->ptr);
+    sb->len = 0;
+    sb->ptr = NULL;
+}
+
+
+static size_t string_buffer_callback( void * buf, size_t size, size_t nmemb, void * data )
+{
+    string_buffer_t * sb = (string_buffer_t *) data;
+    size_t new_len = sb->len + size * nmemb;
+
+    sb->ptr = (char *) realloc( sb->ptr, new_len + 1 );
+
+    memcpy( sb->ptr + sb->len, buf, size * nmemb );
+
+    sb->ptr[ new_len ] = '\0';
+    sb->len = new_len;
+
+    return size * nmemb;
+
+}
+
+
+static size_t header_callback(char * buf, size_t size, size_t nmemb, void * data )
+{
+    return string_buffer_callback( buf, size, nmemb, data );
+}
+
+
+static size_t write_callback( void * buf, size_t size, size_t nmemb, void * data )
+{
+    return string_buffer_callback( buf, size, nmemb, data );
+}
+
+int GetURL( char * myurl )
+{
+    CURL * curl;
+    CURLcode res;
+    string_buffer_t strbuf;
+
+    string_buffer_initialize( &strbuf );
+
+    curl = curl_easy_init();
+
+    if(!curl)
+    {
+        fprintf(stderr, "Fatal: curl_easy_init() error.\n");
+        string_buffer_finish( &strbuf );
+        return EXIT_FAILURE;
+    }
+
+    curl_easy_setopt(curl, CURLOPT_URL, myurl );
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L );
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback );
+    curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_callback );
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &strbuf );
+    curl_easy_setopt(curl, CURLOPT_HEADERDATA, &strbuf );
+
+    res = curl_easy_perform(curl);
+
+    if( res != CURLE_OK )
+    {
+        fprintf( stderr, "Request failed: curl_easy_perform(): %s\n", curl_easy_strerror(res) );
+
+        curl_easy_cleanup( curl );
+        string_buffer_finish( &strbuf );
+
+        return EXIT_FAILURE;
+    }
+
+    printf( "%s\n\n", strbuf.ptr );
+
+    curl_easy_cleanup( curl );
+    string_buffer_finish( &strbuf );
+
+    return EXIT_SUCCESS;
 }
