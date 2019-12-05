@@ -4,11 +4,13 @@
 #include <sys/ioctl.h>			//Needed for I2C port
 #include <linux/i2c-dev.h>		//Needed for I2C port
 #include <stdio.h>
+#include <stdlib.h>
 
-#define	I2C_ADDRESS	0x41
+#define	I2C_ADDRESS_82	0x41	// 0x82 with 7 most significant bits
+#define	I2C_ADDRESS_60	0x30	// 0x60 with 7 most significant buts
 
-const char MESSAGE_GETREGELAAR[6] = {0x80, 0x90, 0xE0, 0x04, 0x00, 0x8A};
-const int MESSAGE_GETREGELAAR_LENGTH = 6;
+const char MESSAGE_GETREGELAAR82[6] = {0x80, 0x90, 0xE0, 0x04, 0x00, 0x8A};
+const int MESSAGE_GETREGELAAR82_LENGTH = 6;
 const char MESSAGE_OPHALENSERIENUMMER[6] = {0x80, 0x90, 0xE1, 0x04, 0x00, 0x89};
 const int MESSAGE_OPHALENSERIENUMMER_LENGTH = 6;
 const char MESSAGE_OPHALENSETTING0[25] = {0x80,0xA4,0x10,0x04,0x13,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x33};
@@ -36,6 +38,9 @@ void PrintHelp();
 char *ConstructOphalensetting(int settingNr);
 char CalculateChecksum(int length, char *buffer);
 char *ConstructOphalenConfig(int settingNr, int counterNr);
+int OpenBus(int addr);
+void SendMessageForInput(int file_i2c, int c);
+void HandleKeyBoardInput(int file_i2c);
 
 #define KEY_QUESTION 63
 #define KEY_R 114
@@ -52,11 +57,139 @@ char *ConstructOphalenConfig(int settingNr, int counterNr);
 #define KEY_O 111	// ophalen alle settings
 #define KEY_N 110 	// ophalen alle configs
 
-int main()
+int main(int argc, char *argv[])
 {
-	int file_i2c;
+	int file_i2c_82 = OpenBus(I2C_ADDRESS_82);
+	if (file_i2c_82<0)
+		return file_i2c_82;
 
-	//----- OPEN THE I2C BUS -----
+	if (argc<2)
+	{
+		HandleKeyBoardInput(file_i2c_82);
+	}
+	else
+	{
+		int c = atoi(argv[1]);
+		SendMessageForInput(file_i2c_82, c);
+		// c = getchar();
+	}
+}
+
+void HandleKeyBoardInput(int file_i2c)
+{
+	int c;
+	do
+	{
+		printf("Type a command (? = help)\n");
+		c = getchar();
+		SendMessageForInput(file_i2c,c);
+	} while (c!=KEY_X);
+}
+
+void SendMessageForInput(int file_i2c, int c)
+{
+	switch (c)
+	{
+	case KEY_QUESTION:
+		PrintHelp();
+		break;
+		
+	case KEY_R:
+		if (SendMessage(file_i2c, MESSAGE_GETREGELAAR82, MESSAGE_GETREGELAAR82_LENGTH)==0)
+			printf("Send message GetRegelaar\n");
+		break;
+	
+	case KEY_S:
+		if (SendMessage(file_i2c, MESSAGE_OPHALENSERIENUMMER, MESSAGE_OPHALENSERIENUMMER_LENGTH)==0)
+			printf("Send message Ophalen Serienummer\n");
+		break;
+	
+	case KEY_0:
+		if (SendMessage(file_i2c, MESSAGE_OPHALENSETTING0, MESSAGE_OPHALENSETTING0_LENGTH)==0)
+			printf("Send message Ophalen Setting 0\n");
+		break;
+		
+	case KEY_5:
+		if (SendMessage(file_i2c, MESSAGE_OPHALENSETTING50, MESSAGE_OPHALENSETTING50_LENGTH)==0)
+			printf("Send message Ophalen Setting 50\n");
+		break;
+
+	case KEY_6:
+		if (SendMessage(file_i2c, MESSAGE_OPHALENSETTING69, MESSAGE_OPHALENSETTING69_LENGTH)==0)
+			printf("Send message Ophalen Setting 69\n");
+		break;
+
+	case KEY_D:
+		if (SendMessage(file_i2c, MESSAGE_OPHALENDATATYPE, MESSAGE_OPHALENDATATYPE_LENGTH)==0)
+			printf("Send message ophalen datatype\n");
+		break;
+
+	case KEY_A:	// ophalen datalog
+		if (SendMessage(file_i2c, MESSAGE_DATALOG6, MESSAGE_DATALOG6_LENGTH)==0)
+			printf("Send message ophalen datalog\n");
+		break;
+
+	case KEY_C:	// vraag config
+		if (SendMessage(file_i2c, MESSAGE_VRAAGCONFIG, MESSAGE_VRAAGCONFIG_LENGTH)==0)
+			printf("Send message vraag config\n");
+		break;
+
+	case KEY_I:	// vraag ventielaanwezig
+		if (SendMessage(file_i2c, MESSAGE_VRAAGVENTIELAANWEZIG, MESSAGE_VRAAGVENTIELAANWEZIG_LENGTH)==0)
+			printf("Send message vraag ventiel aanwezig\n");
+		break;
+	
+	case KEY_V: // vraag counters
+		if (SendMessage(file_i2c, MESSAGE_VRAAGCOUNTERS, MESSAGE_VRAAGCOUNTERS_LENGTH)==0)
+			printf("Send message vraag counters\n");
+		break;
+		
+	case KEY_O:
+		for (int i=0;i<=0x94;i++)
+		{
+			ConstructOphalensetting(i);
+			if (SendMessage(file_i2c, ophalenSettingMessage+1, 25)==0)
+				printf("Send message Ophalensetting(%d)\n", i);
+			else
+				break;
+			sleep(5);	// 1 second
+		}
+		
+	case KEY_N:
+		for (int i=0;i<=0x26;i++)
+		{
+			ConstructOphalenConfig(1, i);
+			if (SendMessage(file_i2c, ophalenConfigMessage+1, 10)==0)
+				printf("Send message OphalenConfig(1, %d)\n", i);
+			else
+				break;
+			sleep(5);	// 1 second
+		}
+		for (int i=0;i<=0x29;i++)
+		{
+			ConstructOphalenConfig(0, i);
+			if (SendMessage(file_i2c, ophalenConfigMessage+1, 10)==0)
+				printf("Send message OphalenConfig(0, %d)\n", i);
+			else
+				break;
+			sleep(5);	// 1 second
+		}
+
+	case KEY_X:
+		printf("Stopping\n");
+		break;
+	
+	default:
+		printf("Unknown command\n");
+		break;
+	}
+}
+
+
+int OpenBus(int addr)
+{
+	//----- OPEN THE I2C BUS for specified slave -----
+	int file_i2c;
 	char *filename = (char*)"/dev/i2c-1";
 	if ((file_i2c = open(filename, O_RDWR)) < 0)
 	{
@@ -65,116 +198,13 @@ int main()
 		return -1;
 	}
 	
-	int addr = I2C_ADDRESS;          //<<<<<The I2C address of the slave
 	if (ioctl(file_i2c, I2C_SLAVE, addr) < 0)
 	{
 		printf("Failed to acquire bus access and/or talk to slave.\n");
 		//ERROR HANDLING; you can check errno to see what went wrong
 		return -1;
 	}
-
-	int c;
-	do
-	{
-		printf("Type a command (? = help)\n");
-		c = getchar();
-
-		switch (c)
-		{
-		case KEY_QUESTION:
-			PrintHelp();
-			break;
-			
-		case KEY_R:
-			if (SendMessage(file_i2c, MESSAGE_GETREGELAAR, MESSAGE_GETREGELAAR_LENGTH)==0)
-				printf("Send message GetRegelaar\n");
-			break;
-		
-		case KEY_S:
-			if (SendMessage(file_i2c, MESSAGE_OPHALENSERIENUMMER, MESSAGE_OPHALENSERIENUMMER_LENGTH)==0)
-				printf("Send message Ophalen Serienummer\n");
-			break;
-		
-		case KEY_0:
-			if (SendMessage(file_i2c, MESSAGE_OPHALENSETTING0, MESSAGE_OPHALENSETTING0_LENGTH)==0)
-				printf("Send message Ophalen Setting 0");
-			break;
-			
-		case KEY_5:
-			if (SendMessage(file_i2c, MESSAGE_OPHALENSETTING50, MESSAGE_OPHALENSETTING50_LENGTH)==0)
-				printf("Send message Ophalen Setting 50");
-			break;
-
-		case KEY_6:
-			if (SendMessage(file_i2c, MESSAGE_OPHALENSETTING69, MESSAGE_OPHALENSETTING69_LENGTH)==0)
-				printf("Send message Ophalen Setting 69");
-			break;
-
-		case KEY_D:
-			if (SendMessage(file_i2c, MESSAGE_OPHALENDATATYPE, MESSAGE_OPHALENDATATYPE_LENGTH)==0)
-				printf("Send message ophalen datatype");
-			break;
-
-		case KEY_A:	// ophalen datalog
-			if (SendMessage(file_i2c, MESSAGE_DATALOG6, MESSAGE_DATALOG6_LENGTH)==0)
-				printf("Send message ophalen datalog");
-			break;
-
-		case KEY_C:	// vraag config
-			if (SendMessage(file_i2c, MESSAGE_VRAAGCONFIG, MESSAGE_VRAAGCONFIG_LENGTH)==0)
-				printf("Send message vraag config");
-			break;
-
-		case KEY_I:	// vraag ventielaanwezig
-			if (SendMessage(file_i2c, MESSAGE_VRAAGVENTIELAANWEZIG, MESSAGE_VRAAGVENTIELAANWEZIG_LENGTH)==0)
-				printf("Send message vraag ventiel aanwezig");
-			break;
-		
-		case KEY_V: // vraag counters
-			if (SendMessage(file_i2c, MESSAGE_VRAAGCOUNTERS, MESSAGE_VRAAGCOUNTERS_LENGTH)==0)
-				printf("Send message vraag counters");
-			break;
-			
-		case KEY_O:
-			for (int i=0;i<=0x94;i++)
-			{
-				ConstructOphalensetting(i);
-				if (SendMessage(file_i2c, ophalenSettingMessage+1, 25)==0)
-					printf("Send message Ophalensetting(%d)\n", i);
-				else
-					break;
-				sleep(5);	// 1 second
-			}
-			
-		case KEY_N:
-			for (int i=0;i<=0x26;i++)
-			{
-				ConstructOphalenConfig(1, i);
-				if (SendMessage(file_i2c, ophalenConfigMessage+1, 10)==0)
-					printf("Send message OphalenConfig(1, %d)\n", i);
-				else
-					break;
-				sleep(5);	// 1 second
-			}
-			for (int i=0;i<=0x29;i++)
-			{
-				ConstructOphalenConfig(0, i);
-				if (SendMessage(file_i2c, ophalenConfigMessage+1, 10)==0)
-					printf("Send message OphalenConfig(0, %d)\n", i);
-				else
-					break;
-				sleep(5);	// 1 second
-			}
-
-		case KEY_X:
-			printf("Stopping\n");
-			break;
-		
-		default:
-			printf("Unknown command\n");
-			break;
-		}
-	} while (c!=KEY_X);
+	return file_i2c;
 }
 
 

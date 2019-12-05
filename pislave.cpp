@@ -1,4 +1,4 @@
-// g++ -l pthread -l pigpio -lcurl -o pislave pislave.cpp
+// g++ -l pthread -l pigpio -lcurl -lsqlite3 -o pislave pislave.cpp
 #include <pthread.h>
 #include <pigpio.h>
 #include <iostream>
@@ -10,6 +10,9 @@
 #include <fstream>
 #include <stdlib.h>
 #include <curl/curl.h>
+#include <stdlib.h>
+#include <sqlite3.h>
+
 
 using namespace std;
 
@@ -20,12 +23,14 @@ void writeToFile(char *filename, string data);
 void processIncomingMessage(char *buffer, int length);
 string bufferToReadableString(char *buffer, int length);
 int GetURL(char *myurl);
+int insertlog(char *datalog);
 
 const int slaveAddress = 0x40; // <-- 0x40 is 7 bit address of 0x80
 bsc_xfer_t xfer; // Struct to control data flow
 int command = 0; // -1=exit, 0=read mode, 1=sendgetregelaar
 
-int main() {
+int main() 
+{
     pthread_t cThread;
 
     gpioInitialise();
@@ -39,17 +44,12 @@ int main() {
 
     string strinput;
     string exit_command = "x";
-    string getregelaar_command = "r";
 
     cout << "Enter a command (x=exit): ";
     while (strinput.compare(exit_command))
     {
         getline(cin, strinput);
         cout << "You entered: " << strinput << endl;
-        if (!strinput.compare(getregelaar_command))
-        {
-            command = 1;
-        }
     }
     cout << "stopping" << endl;
     command = -1;
@@ -57,6 +57,13 @@ int main() {
     closeSlave();
 
     return 0;
+}
+
+void ConvertCharToHex(char *buffer, char *converted, int bufferlength)
+{
+  for(int i=0;i<bufferlength;i++) {
+    sprintf(&converted[i*2], "%02X", buffer[i]);
+  }
 }
 
 void *work(void * parm)
@@ -77,6 +84,7 @@ void *work(void * parm)
         int loopcount = 0;
         int receivedcount = 0;
         char *buffer = new char[1000];
+        char *bufferhex = new char[2003];    // plus 2 for 80 destination and 1 for \0
         while(command!=-1)
         {
             bscXfer(&xfer);
@@ -98,10 +106,9 @@ void *work(void * parm)
                     if (receivedcount>0)
                     {
                         // write buffer and clear all
-                        cout << "[0x80";
-                        for (int i = 0; i < receivedcount; i++)
-                            printf(" 0x%02X", buffer[i]);
-                        cout << "]\n";
+                        sprintf(bufferhex, "80");
+                        ConvertCharToHex(buffer, bufferhex + 2, receivedcount);
+                        insertlog(bufferhex);
 						processIncomingMessage(buffer, receivedcount);
 
                         receivedcount = 0;
@@ -195,9 +202,9 @@ void processIncomingMessage(char *buffer, int length)
 		// printf("buffer[155]=%d, buffer[156]=%d\n", buffer[155], buffer[156]);
 		float outsideTemp = (((int) buffer[155] << 8) + (int) buffer[156])/100.0;
 		printf("Buitentemperatuur: %.2f\n", outsideTemp);
-		char domoticzUrl[400];
-		sprintf(domoticzUrl, "http://10.0.0.51:8080/json.htm?type=command&param=udevice&idx=398&nvalue=0&svalue=%.2f", outsideTemp);
-		GetURL(domoticzUrl);
+		//char domoticzUrl[400];
+		//sprintf(domoticzUrl, "http://10.0.0.51:8080/json.htm?type=command&param=udevice&idx=398&nvalue=0&svalue=%.2f", outsideTemp);
+		//GetURL(domoticzUrl);
 		
 		int commTellerA = ((int) buffer[161]<<8) + (int) buffer[162];
 		int commTellerB = ((int) buffer[163]<<8) + (int) buffer[164];
@@ -333,4 +340,46 @@ int GetURL( char * myurl )
     string_buffer_finish( &strbuf );
 
     return EXIT_SUCCESS;
+}
+
+int callback(void *NotUsed, int argc, char **argv, char **azColName)
+{
+  int i;
+  for(i=0; i<argc; i++){
+    printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+  }
+  printf("\n");
+  return 0;
+}
+
+int executesql(char *sql)
+{
+  sqlite3 *db;
+  char *zErrMsg = 0;
+  int rc;
+
+  rc = sqlite3_open("sqlite.db", &db);
+  if( rc ){
+    fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+    sqlite3_close(db);
+    return(1);
+  }
+  printf("Executing %s\n", sql);
+  rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
+  if( rc!=SQLITE_OK ){
+    fprintf(stderr, "SQL error: %s\n", zErrMsg);
+    sqlite3_free(zErrMsg);
+  }
+  sqlite3_close(db);
+  return rc;
+}
+
+int insertlog(char *datalog)
+{
+  const char *sqltemplate = "insert into datalog(moment, data) values (current_timestamp, '%s')";
+  char *statement = (char *) malloc(strlen(datalog) + strlen(sqltemplate) + 1);
+  sprintf(statement, sqltemplate, datalog);
+  int rc = executesql(statement);
+  free(statement);
+  return rc;
 }
