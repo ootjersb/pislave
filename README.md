@@ -33,6 +33,6 @@ x = Exit the program and close communication
 After pislave has been launched you can open a second session and launch pimaster2 to execute commands:
 ./pimaster2
 
-Options for control:
-r = GetRegelaar. This is a quite generic message that asks the connected device for its information (make, model and such), that is usually the start when you are new
+Options for control:  
+r = GetRegelaar. This is a quite generic message that asks the connected device for its information (make, model and such), that is usually the start when you are new.  
 a = Retrieve the datalog. This is the most interesting message in the sense that it asks for the sensor read outs. The data differs per device.
