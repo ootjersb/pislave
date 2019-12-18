@@ -1,4 +1,9 @@
-// g++ -l pthread -l pigpio -lcurl -lsqlite3 -o pislave pislave.cpp
+// Description: Tool to receive the data from the Itho device. Currently some hardcoded actions are possible: 
+// - Insert raw data into SQLite DB, 
+// - Parse a single value and upload to Domoticz
+// - Parse datalog and print to screen
+// compile: g++ -l pthread -l pigpio -lcurl -lsqlite3 -o pislave pislave.cpp datalogparser.cpp
+// run: sudo ./pislave
 #include <pthread.h>
 #include <pigpio.h>
 #include <iostream>
@@ -12,6 +17,7 @@
 #include <curl/curl.h>
 #include <stdlib.h>
 #include <sqlite3.h>
+#include "datalogparser.h"
 
 
 using namespace std;
@@ -20,8 +26,8 @@ void closeSlave();
 int getControlBits(int, bool);
 void *work(void *);
 void writeToFile(char *filename, string data);
-void processIncomingMessage(char *buffer, int length);
-string bufferToReadableString(char *buffer, int length);
+void processIncomingMessage(unsigned char *buffer, int length);
+string bufferToReadableString(unsigned char *buffer, int length);
 int GetURL(char *myurl);
 int insertlog(char *datalog);
 
@@ -59,7 +65,7 @@ int main()
     return 0;
 }
 
-void ConvertCharToHex(char *buffer, char *converted, int bufferlength)
+void ConvertCharToHex(unsigned char *buffer, char *converted, int bufferlength)
 {
   for(int i=0;i<bufferlength;i++) {
     sprintf(&converted[i*2], "%02X", buffer[i]);
@@ -83,8 +89,7 @@ void *work(void * parm)
         xfer.rxCnt = 0;
         int loopcount = 0;
         int receivedcount = 0;
-        char *buffer = new char[1000];
-        char *bufferhex = new char[2003];    // plus 2 for 80 destination and 1 for \0
+        unsigned char *buffer = new unsigned char[1000];
         while(command!=-1)
         {
             bscXfer(&xfer);
@@ -106,9 +111,6 @@ void *work(void * parm)
                     if (receivedcount>0)
                     {
                         // write buffer and clear all
-                        sprintf(bufferhex, "80");
-                        ConvertCharToHex(buffer, bufferhex + 2, receivedcount);
-                        insertlog(bufferhex);
 						processIncomingMessage(buffer, receivedcount);
 
                         receivedcount = 0;
@@ -181,8 +183,40 @@ int getControlBits(int address /* max 127 */, bool open) {
     return (address << 16 /*= to the start of significant bits*/) | flags;
 }
 
-void processIncomingMessage(char *buffer, int length)
+void ParseDatalogAutotemp(unsigned char *buffer)
 {
+	float outsideTemp = (((int) buffer[155] << 8) + (int) buffer[156])/100.0;
+	printf("Buitentemperatuur: %.2f\n", outsideTemp);
+
+	int commTellerA = ((int) buffer[161]<<8) + (int) buffer[162];
+	int commTellerB = ((int) buffer[163]<<8) + (int) buffer[164];
+	int commTellerC = ((int) buffer[165]<<8) + (int) buffer[166];
+	int commTellerD = ((int) buffer[167]<<8) + (int) buffer[168];
+	int commTellerE = ((int) buffer[169]<<8) + (int) buffer[170];
+	int commTellerF = ((int) buffer[171]<<8) + (int) buffer[172];
+	printf("Comm tellers A: %d, B: %d, C: %d, D:%d, E: %d, F: %d\n", commTellerA, commTellerB, commTellerC, commTellerD, commTellerE, commTellerF);
+
+	// upload the values to Domoticz
+	//char domoticzUrl[400];
+	//sprintf(domoticzUrl, "http://10.0.0.51:8080/json.htm?type=command&param=udevice&idx=398&nvalue=0&svalue=%.2f", outsideTemp);
+	//GetURL(domoticzUrl);
+}
+
+void ParseDatalogHeatPump(unsigned char *buffer)
+{
+	DatalogParser p(13);
+	p.Parse(buffer+5, 0x4D);
+}
+
+void processIncomingMessage(unsigned char *buffer, int length)
+{
+	// Write the message to SQL Lite
+	char *bufferhex = new char[2003];    // plus 2 for 80 destination and 1 for \0
+	sprintf(bufferhex, "80");
+	ConvertCharToHex(buffer, bufferhex + 2, length);
+	insertlog(bufferhex);
+
+	// Then process it further
 	char filename[128];
 	string messagename;
 	if (buffer[1] == 0xA4 && buffer[2] == 0x10)	// ophalen setting
@@ -199,34 +233,23 @@ void processIncomingMessage(char *buffer, int length)
 	{
 		messagename = "Datalog";
 		sprintf(filename, "data/%02X%02X.txt", buffer[1], buffer[2]); // TODO: add timestamp??
-		// printf("buffer[155]=%d, buffer[156]=%d\n", buffer[155], buffer[156]);
-		float outsideTemp = (((int) buffer[155] << 8) + (int) buffer[156])/100.0;
-		printf("Buitentemperatuur: %.2f\n", outsideTemp);
-		//char domoticzUrl[400];
-		//sprintf(domoticzUrl, "http://10.0.0.51:8080/json.htm?type=command&param=udevice&idx=398&nvalue=0&svalue=%.2f", outsideTemp);
-		//GetURL(domoticzUrl);
 		
-		int commTellerA = ((int) buffer[161]<<8) + (int) buffer[162];
-		int commTellerB = ((int) buffer[163]<<8) + (int) buffer[164];
-		int commTellerC = ((int) buffer[165]<<8) + (int) buffer[166];
-		int commTellerD = ((int) buffer[167]<<8) + (int) buffer[168];
-		int commTellerE = ((int) buffer[169]<<8) + (int) buffer[170];
-		int commTellerF = ((int) buffer[171]<<8) + (int) buffer[172];
-		printf("Comm tellers A: %d, B: %d, C: %d, D:%d, E: %d, F: %d\n", commTellerA, commTellerB, commTellerC, commTellerD, commTellerE, commTellerF);
+		ParseDatalogHeatPump(buffer);
+		// ParseDatalogAutotemp(buffer);
 	}
 	else
 	{
 		messagename = "Unknown";
 		sprintf(filename, "data/%02X%02X.txt", buffer[1], buffer[2]);
 	}
-	string data = bufferToReadableString(buffer, length);
+	// string data = bufferToReadableString(buffer, length);
 
-	cout << "processing message " << messagename << " to " << filename << endl;
-	cout << data << endl;
-	writeToFile(filename, data);
+	// cout << "processing message " << messagename << " to " << filename << endl;
+	// cout << data << endl;
+	// writeToFile(filename, data);
 }
 
-string bufferToReadableString(char *buffer, int length)
+string bufferToReadableString(unsigned char *buffer, int length)
 {
 	std::stringstream ss;
 	ss << std::hex << std::setfill('0');

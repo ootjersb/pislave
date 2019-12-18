@@ -9,7 +9,8 @@ The Master is used to send requests to the WPU or Autotemp. The Slave is used to
 The toolset:
 - pimaster.cpp: Initial attempt to send commands to the Itho devices. This one has been replaced by pimaster2.c
 - pimaster2.c: Tool that can be used to send queries (hardcoded) to the Itho device.
-- pimaster82.c: Simulator for WPU/Autotemp which is normally at address 0x82, can be used to test the other programs without connecting to the Itho devices
+- emu_autotemp.c: Simulator for Autotemp which is normally at address 0x82, can be used to test the other programs without connecting to the Itho device. Does send a datalog message
+- emu_heatpump.c: Simulator for Heat Pump which is normally at address 0x82, can be used to test the other programs without connecting to the Itho device. Does send a datalog message
 - pislave.cpp: Tool to receive the data from the Itho device. Currently some hardcoded actions are possible: Insert raw data into SQLite DB, Parse a single value and upload to Domoticz
 - pislave82.cpp: Simulator for WPU/Automtemp on receival side.
  
