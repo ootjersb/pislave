@@ -3,8 +3,11 @@
 
 #include "field.h"
 
-#define FIELD_COUNT_WARMTEPOMP 27
-#define FIELD_COUNT_AUTOTEMP 24
+#define FIELD_COUNT_WARMTEPOMP 	27
+#define FIELD_COUNT_AUTOTEMP 	24
+
+#define DEVICE_ID_WARMTEPOMP 13
+#define DEVICE_ID_AUTOTEMP   15
 
 class DatalogParser
 {
@@ -17,8 +20,12 @@ class DatalogParser
         float ParseSignedIntDec2(unsigned char * buffer);
         int ParseByte(unsigned char *buffer);
         unsigned int ParseUnsignedInt(unsigned char *buffer);
+		char *FieldValue(int index);
+		char *FieldValue(string label);
 
     private:
+		char errorMessage[100];
+		char fieldValues[FIELD_COUNT_WARMTEPOMP][50];	// only the bigger of the two taken here
         Field *config;
         Field warmtepompConfig[FIELD_COUNT_WARMTEPOMP] {{ 0, SignedIntDec2, "Buitentemperatuur"}, 
                                         { 2, SignedIntDec2, "Boiler laag"},

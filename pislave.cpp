@@ -1,6 +1,6 @@
 // Description: Tool to receive the data from the Itho device. Currently some hardcoded actions are possible: 
 // - Insert raw data into SQLite DB, 
-// - Parse a single value and upload to Domoticz
+// - Parse a single autotemp value and upload to Domoticz
 // - Parse datalog and print to screen
 // compile: g++ -l pthread -l pigpio -lcurl -lsqlite3 -o pislave pislave.cpp datalogparser.cpp
 // run: sudo ./pislave
@@ -42,6 +42,8 @@ int main()
     gpioInitialise();
     cout << "Initialized GPIOs\n";
 
+	work(NULL);
+/*
     cout << "Starting a new thread to receive data" << endl;
     if(pthread_create(&cThread, NULL, work, NULL))
     {
@@ -61,6 +63,7 @@ int main()
     command = -1;
     sleep(1);
     closeSlave();
+*/
 
     return 0;
 }
@@ -183,6 +186,20 @@ int getControlBits(int address /* max 127 */, bool open) {
     return (address << 16 /*= to the start of significant bits*/) | flags;
 }
 
+void UploadTemperatureToDomoticz(int idx, char *value)
+{
+	char domoticzUrl[400];
+	sprintf(domoticzUrl, "http://10.0.0.51:8080/json.htm?type=command&param=udevice&idx=%d&nvalue=0&svalue=%s", idx, value);
+	GetURL(domoticzUrl);
+}
+
+void UploadTemperatureToDomoticz(int idx, float value)
+{
+	char sValue[100];
+	sprintf(sValue, "%.2f", value);
+	UploadTemperatureToDomoticz(idx, sValue);
+}
+
 void ParseDatalogAutotemp(unsigned char *buffer)
 {
 	float outsideTemp = (((int) buffer[155] << 8) + (int) buffer[156])/100.0;
@@ -195,26 +212,39 @@ void ParseDatalogAutotemp(unsigned char *buffer)
 	int commTellerE = ((int) buffer[169]<<8) + (int) buffer[170];
 	int commTellerF = ((int) buffer[171]<<8) + (int) buffer[172];
 	printf("Comm tellers A: %d, B: %d, C: %d, D:%d, E: %d, F: %d\n", commTellerA, commTellerB, commTellerC, commTellerD, commTellerE, commTellerF);
-
-	// upload the values to Domoticz
-	//char domoticzUrl[400];
-	//sprintf(domoticzUrl, "http://10.0.0.51:8080/json.htm?type=command&param=udevice&idx=398&nvalue=0&svalue=%.2f", outsideTemp);
-	//GetURL(domoticzUrl);
+	
+	UploadTemperatureToDomoticz(398, outsideTemp);
 }
 
 void ParseDatalogHeatPump(unsigned char *buffer)
 {
-	DatalogParser p(13);
-	p.Parse(buffer+5, 0x4D);
+	DatalogParser p(DEVICE_ID_WARMTEPOMP);
+	p.Parse(buffer+5, 0);	// TODO: length is not used yet
+	// printf("Buitentemperatuur: %s\n", p.FieldValue("Buitentemperatuur"));
+	UploadTemperatureToDomoticz(398, p.FieldValue("Buitentemperatuur"));
+	UploadTemperatureToDomoticz(436, p.FieldValue("Van bron"));
+	UploadTemperatureToDomoticz(437, p.FieldValue("Naar bron"));
+	UploadTemperatureToDomoticz(438, p.FieldValue("CV retour"));
+	UploadTemperatureToDomoticz(439, p.FieldValue("CV aanvoer"));
+	UploadTemperatureToDomoticz(440, p.FieldValue("Flow sensor bron"));
+	UploadTemperatureToDomoticz(441, p.FieldValue("Verdamper temperatuur"));
+	UploadTemperatureToDomoticz(442, p.FieldValue("Zuiggas temperatuur"));
+	UploadTemperatureToDomoticz(443, p.FieldValue("Persgas temperatuur"));
+	UploadTemperatureToDomoticz(444, p.FieldValue("Vloeistof temperatuur"));
 }
 
-void processIncomingMessage(unsigned char *buffer, int length)
+void WriteMessageToSQLLite(unsigned char *buffer, int length)
 {
 	// Write the message to SQL Lite
 	char *bufferhex = new char[2003];    // plus 2 for 80 destination and 1 for \0
 	sprintf(bufferhex, "80");
 	ConvertCharToHex(buffer, bufferhex + 2, length);
 	insertlog(bufferhex);
+}
+
+void processIncomingMessage(unsigned char *buffer, int length)
+{
+	// WriteMessageToSQLLite(buffer, length);
 
 	// Then process it further
 	char filename[128];
@@ -357,7 +387,7 @@ int GetURL( char * myurl )
         return EXIT_FAILURE;
     }
 
-    printf( "%s\n\n", strbuf.ptr );
+    // printf( "%s\n\n", strbuf.ptr );
 
     curl_easy_cleanup( curl );
     string_buffer_finish( &strbuf );
