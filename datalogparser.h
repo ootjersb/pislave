@@ -41,7 +41,7 @@ class DatalogParser
                                         { 22, SignedIntDec2, "Druksensor"},
                                         { 24, SignedIntDec2, "Stroom trafo 1"},
                                         { 26, SignedIntDec2, "Stroom trafo 2"},
-                                        { 24, UnsignedInt, "Flow sensor bron"},
+                                        { 34, UnsignedInt, "Flow sensor bron"},
                                         { 37, Byte, "Snelheid cv pomp (%)"},
                                         { 38, Byte, "Snelheid bron pomp (%)"},
                                         { 39, Byte, "Snelheid boiler pomp (%)"},
