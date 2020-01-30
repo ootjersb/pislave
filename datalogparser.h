@@ -3,7 +3,7 @@
 
 #include "field.h"
 
-#define FIELD_COUNT_WARMTEPOMP 	27
+#define FIELD_COUNT_WARMTEPOMP 	28
 #define FIELD_COUNT_AUTOTEMP 	24
 
 #define DEVICE_ID_WARMTEPOMP 13
@@ -22,10 +22,13 @@ class DatalogParser
         unsigned int ParseUnsignedInt(unsigned char *buffer);
 		char *FieldValue(int index);
 		char *FieldValue(string label);
+		bool FieldChanged(int index);
+		bool FieldChanged(string label);
 
     private:
 		char errorMessage[100];
 		char fieldValues[FIELD_COUNT_WARMTEPOMP][50];	// only the bigger of the two taken here
+		char previousValues[FIELD_COUNT_WARMTEPOMP][50];	// only the bigger of the two taken here
         Field *config;
         Field warmtepompConfig[FIELD_COUNT_WARMTEPOMP] {{ 0, SignedIntDec2, "Buitentemperatuur"}, 
                                         { 2, SignedIntDec2, "Boiler laag"},
@@ -50,6 +53,7 @@ class DatalogParser
                                         { 46, Byte, "Trickle heating aan/uit"},
                                         { 47, Byte, "Fout aanwezig (0=J, 1=N)"},
                                         { 48, Byte, "Vrijkoelen actief (0=uit, 1=aan)"},
+										{ 51, SignedIntDec2, "Kamertemperatuur"},
                                         { 56, Byte, "State (0=init,1=uit,2=CV,3=boiler,4=vrijkoel,5=ontluchten)"},
                                         { 57, Byte, "Substatus (255=geen)"},
                                         { 67, Byte, "Fout gevonden (foutcode)"},
@@ -81,6 +85,7 @@ class DatalogParser
                                                     { 166, UnsignedInt, "Comm Ruimte F"}};
     int char2int(char input);
     void hex2bin(const char* src, unsigned char* target);
+	int GetFieldIndex(string label);
 };
 
 #endif

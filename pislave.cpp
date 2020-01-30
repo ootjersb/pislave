@@ -34,6 +34,7 @@ int insertlog(char *datalog);
 const int slaveAddress = 0x40; // <-- 0x40 is 7 bit address of 0x80
 bsc_xfer_t xfer; // Struct to control data flow
 int command = 0; // -1=exit, 0=read mode, 1=sendgetregelaar
+DatalogParser p(DEVICE_ID_WARMTEPOMP);
 
 int main() 
 {
@@ -186,19 +187,47 @@ int getControlBits(int address /* max 127 */, bool open) {
     return (address << 16 /*= to the start of significant bits*/) | flags;
 }
 
-void UploadTemperatureToDomoticz(int idx, char *value)
+void UploadToDomoticz(char *params)
 {
 	char domoticzUrl[400];
-	sprintf(domoticzUrl, "http://10.0.0.51:8080/json.htm?type=command&param=udevice&idx=%d&nvalue=0&svalue=%s", idx, value);
+	sprintf(domoticzUrl, "http://10.0.0.51:8080/json.htm?type=command&%s", params);
 	GetURL(domoticzUrl);
 }
 
+void UploadCounterToDomoticz(int idx, char *value)
+{
+	char param[50];
+	sprintf(param, "param=udevice&idx=%d&svalue=%s", idx, value);
+	UploadToDomoticz(param);
+}
+
+// /json.htm?type=command&param=switchlight&idx=99&switchcmd=On
+void UploadSwitchToDomoticz(int idx, char *value)
+{
+	char param[50];
+	if (strcmp(value, "1")==0)
+		sprintf(param, "param=switchlight&idx=%d&switchcmd=On", idx, value);
+	else
+		sprintf(param, "param=switchlight&idx=%d&switchcmd=Off", idx, value);
+	// printf("%s\n", param);
+	UploadToDomoticz(param);
+}
+
+void UploadTemperatureToDomoticz(int idx, char *value)
+{
+	char param[50];
+	sprintf(param, "param=udevice&idx=%d&nvalue=0&svalue=%s", idx, value);
+	UploadToDomoticz(param);
+}
+
+
 void UploadTemperatureToDomoticz(int idx, float value)
 {
-	char sValue[100];
+	char sValue[50];
 	sprintf(sValue, "%.2f", value);
 	UploadTemperatureToDomoticz(idx, sValue);
 }
+
 
 void ParseDatalogAutotemp(unsigned char *buffer)
 {
@@ -216,9 +245,17 @@ void ParseDatalogAutotemp(unsigned char *buffer)
 	UploadTemperatureToDomoticz(398, outsideTemp);
 }
 
+void CheckChangeUploadSwitch(int idx, string label)
+{
+	if (p.FieldChanged(label))
+	{
+		UploadSwitchToDomoticz(idx, p.FieldValue(label));
+	}
+}
+
+
 void ParseDatalogHeatPump(unsigned char *buffer)
 {
-	DatalogParser p(DEVICE_ID_WARMTEPOMP);
 	p.Parse(buffer+5, 0);	// TODO: length is not used yet
 	// printf("Buitentemperatuur: %s\n", p.FieldValue("Buitentemperatuur"));
 	UploadTemperatureToDomoticz(398, p.FieldValue("Buitentemperatuur"));
@@ -231,6 +268,18 @@ void ParseDatalogHeatPump(unsigned char *buffer)
 	UploadTemperatureToDomoticz(442, p.FieldValue("Zuiggas temperatuur"));
 	UploadTemperatureToDomoticz(443, p.FieldValue("Persgas temperatuur"));
 	UploadTemperatureToDomoticz(444, p.FieldValue("Vloeistof temperatuur"));
+	UploadTemperatureToDomoticz(446, p.FieldValue("Boiler hoog"));
+	UploadTemperatureToDomoticz(447, p.FieldValue("Boiler laag"));
+	UploadCounterToDomoticz(448, p.FieldValue("State (0=init,1=uit,2=CV,3=boiler,4=vrijkoel,5=ontluchten)"));
+	UploadTemperatureToDomoticz(478, p.FieldValue("Kamertemperatuur"));
+	UploadCounterToDomoticz(479, p.FieldValue("Substatus (255=geen)"));
+	UploadTemperatureToDomoticz(481, p.FieldValue("Snelheid cv pomp (%)"));
+	UploadTemperatureToDomoticz(482, p.FieldValue("Snelheid bron pomp (%)"));
+	UploadTemperatureToDomoticz(483, p.FieldValue("Snelheid boiler pomp (%)"));
+	CheckChangeUploadSwitch(485, "Compressor aan/uit");
+	CheckChangeUploadSwitch(486, "Elektrisch element aan/uit");
+	CheckChangeUploadSwitch(487, "Fout aanwezig (0=J, 1=N)");
+	UploadCounterToDomoticz(488, p.FieldValue("Fout gevonden (foutcode)"));
 }
 
 void WriteMessageToSQLLite(unsigned char *buffer, int length)
@@ -244,7 +293,7 @@ void WriteMessageToSQLLite(unsigned char *buffer, int length)
 
 void processIncomingMessage(unsigned char *buffer, int length)
 {
-	// WriteMessageToSQLLite(buffer, length);
+	//WriteMessageToSQLLite(buffer, length);
 
 	// Then process it further
 	char filename[128];

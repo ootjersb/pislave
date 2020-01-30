@@ -22,7 +22,10 @@ DatalogParser::DatalogParser(int device)
 
 	// initialize to empty values
     for (int x=0; x<fieldCount;x++)
+	{
 		sprintf(fieldValues[x], "");
+		sprintf(previousValues[x], "");
+	}
 }
 
 float DatalogParser::ParseSignedIntDec2(unsigned char *buffer)
@@ -47,6 +50,7 @@ void DatalogParser::Parse(unsigned char *buffer, int length)
 	
     for (int x=0; x<fieldCount;x++)
     {
+		strcpy(previousValues[x], fieldValues[x]);
         if (config[x].fieldType == SignedIntDec2)
         {
             float value = ParseSignedIntDec2(buffer + config[x].offset);
@@ -68,6 +72,7 @@ void DatalogParser::Parse(unsigned char *buffer, int length)
     }
 }
 
+
 char *DatalogParser::FieldValue(int index)
 {
 	
@@ -80,7 +85,8 @@ char *DatalogParser::FieldValue(int index)
 	return fieldValues[index];
 }
 
-char *DatalogParser::FieldValue(string label)
+
+int DatalogParser::GetFieldIndex(string label)
 {
 	int x;
 	for (x=0; x<fieldCount; x++)
@@ -90,11 +96,41 @@ char *DatalogParser::FieldValue(string label)
 	}
 	if (x==fieldCount)
 	{
+		return -1;
+	}
+	return x;
+}
+
+
+char *DatalogParser::FieldValue(string label)
+{
+	int x = GetFieldIndex(label);
+	if (x==-1)
+	{
 		sprintf(errorMessage, "Field not found");
 		return errorMessage;
 	}
+
 	return FieldValue(x);
 }
+
+
+bool DatalogParser::FieldChanged(int index)
+{
+	// printf("Comparing '%s' to '%s'\n", fieldValues[index], previousValues[index]);
+	return strcmp(fieldValues[index], previousValues[index])!=0;
+}
+
+
+bool DatalogParser::FieldChanged(string label)
+{
+	int x = GetFieldIndex(label);
+	// printf("Field index %d\n", x);
+	if (x==-1)
+		return false;
+	return FieldChanged(x);
+}
+
 
 int DatalogParser::char2int(char input)
 {
