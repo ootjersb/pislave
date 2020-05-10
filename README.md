@@ -16,6 +16,8 @@ The toolset:
 - pislave82.cpp: Simulator for WPU/Autotemp on receival side.
 Other files are included with the above.
 
+This project started from this forum thread: https://www.circuitsonline.net/forum/view/65868
+
 # Wiring
 The component involved is a level shifter, because the Itho units run on 5V instead of 3.3V.
 I used the Adafruit BSS138 level shifter: https://www.kiwi-electronics.nl/4-channel-i2c-safe-bi-directional-logic-level-converter-BSS138?search=adafruit%20i2c%20level%20shifter&description=true
