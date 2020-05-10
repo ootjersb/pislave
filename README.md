@@ -14,12 +14,32 @@ The toolset:
 - pislave.cpp: Tool to receive the data from the Itho device. Currently some hardcoded actions are possible: Insert raw data into SQLite DB, Parse a single value and upload to Domoticz
 - pislave82.cpp: Simulator for WPU/Automtemp on receival side.
  
-
+# Dependencies
+pislave is dependent upon:
+- Curl: sudo apt-get install libcurl4-openssl-dev
+- Sqlite3: sudo apt-get install libsqlite3-dev
+- Enabled I2C port: sudo raspi-config. Option 5 and enable I2C.
+ 
 # Upload and Compile
 Upload to Raspberry Pi and compile with the instructions given in the source file itself.
 
 # Run
 Common operations works by launching first pislave and then pimaster2
+
+# Service installation
+The process can be run as system (no syslog logging yet however, and no start/stop control). Stopping is done by killing the pislave proces :-(
+Copy file ithowp.service to /lib/systemd/system/ithowp.service.
+Reboot your Raspberry Pi.
+
+# Cron job
+You can use cron to schedule running the pimaster GetDatalog command. The crontab line for this is:
+* * * * * /home/pi/pislave/pimaster2 97
+
+# Todo
+- Proper start/stop control for the service
+- Proper syslog logging
+- Interrupt for receiving data
+- Integrating send (pimaster2) and receive (pislave) to single service.
 
 ## pislave
 sudo ./pislave

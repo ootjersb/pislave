@@ -16,6 +16,7 @@ class DatalogParser
 
         DatalogParser(int device);
         void Parse(unsigned char *buffer, int length);
+		bool ParseWithHeader(unsigned char *buffer, int length);
         void Parse(char *hexstring);
         float ParseSignedIntDec2(unsigned char * buffer);
         int ParseByte(unsigned char *buffer);
@@ -86,6 +87,7 @@ class DatalogParser
     int char2int(char input);
     void hex2bin(const char* src, unsigned char* target);
 	int GetFieldIndex(string label);
+	bool IsChecksumValid(unsigned char *buffer, int length);
 };
 
 #endif

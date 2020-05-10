@@ -1,0 +1,12 @@
+[Unit]
+Description=Itho HeatPump reader via I2C
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/home/pi/pislave/pislave
+StandardOutput=syslog
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target

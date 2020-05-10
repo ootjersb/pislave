@@ -254,9 +254,11 @@ void CheckChangeUploadSwitch(int idx, string label)
 }
 
 
-void ParseDatalogHeatPump(unsigned char *buffer)
+void ParseDatalogHeatPump(unsigned char *buffer, int length)
 {
-	p.Parse(buffer+5, 0);	// TODO: length is not used yet
+	if (!p.ParseWithHeader(buffer, length))
+		return;
+	
 	// printf("Buitentemperatuur: %s\n", p.FieldValue("Buitentemperatuur"));
 	UploadTemperatureToDomoticz(398, p.FieldValue("Buitentemperatuur"));
 	UploadTemperatureToDomoticz(436, p.FieldValue("Van bron"));
@@ -313,7 +315,7 @@ void processIncomingMessage(unsigned char *buffer, int length)
 		messagename = "Datalog";
 		sprintf(filename, "data/%02X%02X.txt", buffer[1], buffer[2]); // TODO: add timestamp??
 		
-		ParseDatalogHeatPump(buffer);
+		ParseDatalogHeatPump(buffer, length);
 		// ParseDatalogAutotemp(buffer);
 	}
 	else

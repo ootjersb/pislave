@@ -44,6 +44,52 @@ unsigned int DatalogParser::ParseUnsignedInt(unsigned char *buffer)
     return ((unsigned int) buffer[0] << 8) + buffer[1];
 }
 
+bool DatalogParser::IsChecksumValid(unsigned char *buffer, int length)
+{
+/*
+	c# code:
+	int runningsum = 0;
+	int index = 0;
+	while (index < data.Length)
+	{
+		runningsum += data[index];
+		index++;
+	}
+	int checksum = 256 - (runningsum % 256);
+	if (checksum == 256)
+		return 0;
+	return (byte) checksum;
+*/
+	// printf("Calculating checksum for %d bytes \n", length);
+	int runningsum = 0x80;	// the destination was not included in the header. hard coded here.
+	int index = 0;
+	while (index < (length-1))
+	{
+		runningsum += buffer[index];
+		// printf("runningsum+=%d\n", buffer[index]);
+		index++;
+	}
+	int checksum = 256 - (runningsum % 256);
+	if (checksum == 256)
+		return checksum = 0;
+	
+	// printf("Checksum calculated %d, checksum in data %d\n", checksum, buffer[length-1]);
+	
+	return checksum == buffer[length-1];
+}
+
+bool DatalogParser::ParseWithHeader(unsigned char *buffer, int length)
+{
+	if (!IsChecksumValid(buffer, length))
+	{
+		printf("Checksum invalid, discarding data\n");
+		return false;
+	}
+	Parse(buffer+5, length-5);
+	return true;
+}
+
+// parses the data without the header
 void DatalogParser::Parse(unsigned char *buffer, int length) 
 {
 	// TODO: Nothing is done with the length yet. Should check exceeding the length
