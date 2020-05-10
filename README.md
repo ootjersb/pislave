@@ -1,10 +1,11 @@
 # pislave
-Set of tools to communicate with Itho WPU and Autotemp unit.
+Set of tools to communicate with Itho WPU and Autotemp units.
 The tools are supposed to run on a Raspberry Pi, and there is some electronics involved to connect
 the device to the WPU or Autotemp via UTP cable.
 
 The communication to the Itho devices works via I2C. You need both a master and a slave on the I2C bus.
 The Master is used to send requests to the WPU or Autotemp. The Slave is used to receive the answer.
+The Itho device is registered at address 0x82. The Raspberry Pi is registered at address 0x80.
 
 The toolset:
 - pimaster.cpp: Initial attempt to send commands to the Itho devices. This one has been replaced by pimaster2.c
@@ -12,7 +13,17 @@ The toolset:
 - emu_autotemp.c: Simulator for Autotemp which is normally at address 0x82, can be used to test the other programs without connecting to the Itho device. Does send a datalog message
 - emu_heatpump.c: Simulator for Heat Pump which is normally at address 0x82, can be used to test the other programs without connecting to the Itho device. Does send a datalog message
 - pislave.cpp: Tool to receive the data from the Itho device. Currently some hardcoded actions are possible: Insert raw data into SQLite DB, Parse a single value and upload to Domoticz
-- pislave82.cpp: Simulator for WPU/Automtemp on receival side.
+- pislave82.cpp: Simulator for WPU/Autotemp on receival side.
+Other files are included with the above.
+
+# Wiring
+The component involved is a level shifter, because the Itho units run on 5V instead of 3.3V.
+I used the Adafruit BSS138 level shifter: https://www.kiwi-electronics.nl/4-channel-i2c-safe-bi-directional-logic-level-converter-BSS138?search=adafruit%20i2c%20level%20shifter&description=true
+Wiring like this:
+- I2C-SCL: Raspberry Pi GPIO19 (PIN35) & GPIO03 (PIN05) to Level shifter Low (A1), Level shifter high (B1) to RJ-45 pin 7 (White/Brown)
+- I2C-SDA: Raspberry Pi GPIO02 (PIN03) & GPIO18 (PIN12) to Level shifter Low (A2), Level shifter high (B2) to RJ-45 pin 2 (Orange)
+- Raspberry Pi - GRND(PIN39) - Level shifter GRND Hi and Low - RJ45 Pin 6 (Green)
+- Raspberry Pi - 3.3V (PIN01) to Level shifter Low (LV)
  
 # Dependencies
 pislave is dependent upon:
@@ -22,6 +33,7 @@ pislave is dependent upon:
  
 # Upload and Compile
 Upload to Raspberry Pi and compile with the instructions given in the source file itself.
+Easiest way to upload is just to clone this repository into the pi home directory.
 
 # Run
 Common operations works by launching first pislave and then pimaster2
