@@ -4,7 +4,7 @@
 #include "field.h"
 
 #define FIELD_COUNT_WARMTEPOMP 	28
-#define FIELD_COUNT_AUTOTEMP 	24
+#define FIELD_COUNT_AUTOTEMP 	25
 
 #define DEVICE_ID_WARMTEPOMP 13
 #define DEVICE_ID_AUTOTEMP   15
@@ -77,6 +77,7 @@ class DatalogParser
                                                     { 92, Byte, "Toestand verwarmen"},
                                                     { 93, Byte, "Toestand hand"},
                                                     { 142, UnsignedInt, "Lege batterij (0=OK)"},
+                                                    { 150, SignedIntDec2, "Buitentemperatuur"},
                                                     { 152, UnsignedInt, "Rest cyclustijd"},
                                                     { 156, UnsignedInt, "Comm Ruimte A"},
                                                     { 158, UnsignedInt, "Comm Ruimte B"},

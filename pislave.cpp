@@ -2,7 +2,7 @@
 // - Insert raw data into SQLite DB, 
 // - Parse a single autotemp value and upload to Domoticz
 // - Parse datalog and print to screen
-// compile: g++ -l pthread -l pigpio -lcurl -lsqlite3 -o pislave pislave.cpp datalogparser.cpp
+// compile: g++ -l pthread -l pigpio -lcurl -lsqlite3 -o pislave pislave.cpp datalogparser.cpp config.cpp
 // run: sudo ./pislave
 #include <pthread.h>
 #include <pigpio.h>
@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <sqlite3.h>
 #include "datalogparser.h"
+#include "config.h"
 
 
 using namespace std;
@@ -34,7 +35,8 @@ int insertlog(char *datalog);
 const int slaveAddress = 0x40; // <-- 0x40 is 7 bit address of 0x80
 bsc_xfer_t xfer; // Struct to control data flow
 int command = 0; // -1=exit, 0=read mode, 1=sendgetregelaar
-DatalogParser p(DEVICE_ID_WARMTEPOMP);
+Config config;
+DatalogParser p(DEVICE_ID_AUTOTEMP);
 
 int main() 
 {
@@ -190,7 +192,9 @@ int getControlBits(int address /* max 127 */, bool open) {
 void UploadToDomoticz(char *params)
 {
 	char domoticzUrl[400];
-	sprintf(domoticzUrl, "http://10.0.0.51:8080/json.htm?type=command&%s", params);
+	sprintf(domoticzUrl, "http://10.0.0.20:8080/json.htm?type=command&%s", params);
+	if (config.LogToConsole && config.DebugMode)
+		printf("Calling %s\n", domoticzUrl);
 	GetURL(domoticzUrl);
 }
 
@@ -229,10 +233,24 @@ void UploadTemperatureToDomoticz(int idx, float value)
 }
 
 
-void ParseDatalogAutotemp(unsigned char *buffer)
+void CheckChangeUploadSwitch(int idx, string label)
 {
+	if (p.FieldChanged(label))
+	{
+		UploadSwitchToDomoticz(idx, p.FieldValue(label));
+	}
+}
+
+void ParseDatalogAutotemp(unsigned char *buffer, int length)
+{
+	if (!p.ParseWithHeader(buffer, length))
+	{
+		if (config.LogToConsole)
+			printf("Failed to parse header/checksum\n");
+		return;
+	}
+
 	float outsideTemp = (((int) buffer[155] << 8) + (int) buffer[156])/100.0;
-	printf("Buitentemperatuur: %.2f\n", outsideTemp);
 
 	int commTellerA = ((int) buffer[161]<<8) + (int) buffer[162];
 	int commTellerB = ((int) buffer[163]<<8) + (int) buffer[164];
@@ -240,16 +258,31 @@ void ParseDatalogAutotemp(unsigned char *buffer)
 	int commTellerD = ((int) buffer[167]<<8) + (int) buffer[168];
 	int commTellerE = ((int) buffer[169]<<8) + (int) buffer[170];
 	int commTellerF = ((int) buffer[171]<<8) + (int) buffer[172];
-	printf("Comm tellers A: %d, B: %d, C: %d, D:%d, E: %d, F: %d\n", commTellerA, commTellerB, commTellerC, commTellerD, commTellerE, commTellerF);
-	
-	UploadTemperatureToDomoticz(398, outsideTemp);
-}
-
-void CheckChangeUploadSwitch(int idx, string label)
-{
-	if (p.FieldChanged(label))
+	if (config.LogToConsole)
 	{
-		UploadSwitchToDomoticz(idx, p.FieldValue(label));
+		printf("Buitentemperatuur: %s\n", p.FieldValue("Buitentemperatuur"));
+		printf("Gewenst vermogen: %s\n", p.FieldValue("Gewenst vermogen"));
+		printf("Ruimte 1 temp: %s\n", p.FieldValue("Ruimte 1 temp"));
+		printf("Ruimte 2 temp: %s\n", p.FieldValue("Ruimte 2 temp"));
+		printf("Ruimte 3 temp: %s\n", p.FieldValue("Ruimte 3 temp"));
+		printf("Ruimte 4 temp: %s\n", p.FieldValue("Ruimte 4 temp"));
+		printf("Ruimte 5 temp: %s\n", p.FieldValue("Ruimte 5 temp"));
+		printf("Ruimte 6 temp: %s\n", p.FieldValue("Ruimte 6 temp"));
+		printf("Comm tellers A: %d, B: %d, C: %d, D:%d, E: %d, F: %d\n", commTellerA, commTellerB, commTellerC, commTellerD, commTellerE, commTellerF);
+		printf("Rest cyclustijd %s\n", p.FieldValue("Rest cyclustijd"));
+	}
+	
+	if (config.LogToDomoticz)
+	{
+		// Outside temperature is now logged by WPU reader
+		// UploadTemperatureToDomoticz(398, outsideTemp);
+		UploadTemperatureToDomoticz(576, p.FieldValue("Ruimte 3 temp"));
+		UploadTemperatureToDomoticz(577, p.FieldValue("Ruimte 4 temp"));
+		UploadTemperatureToDomoticz(578, p.FieldValue("Ruimte 2 temp"));
+		UploadTemperatureToDomoticz(579, p.FieldValue("Ruimte 5 temp"));
+		UploadTemperatureToDomoticz(580, p.FieldValue("Ruimte 6 temp"));
+		UploadTemperatureToDomoticz(581, p.FieldValue("Gewenst vermogen"));
+		UploadCounterToDomoticz(582, p.FieldValue("Rest cyclustijd"));
 	}
 }
 
@@ -259,29 +292,34 @@ void ParseDatalogHeatPump(unsigned char *buffer, int length)
 	if (!p.ParseWithHeader(buffer, length))
 		return;
 	
-	// printf("Buitentemperatuur: %s\n", p.FieldValue("Buitentemperatuur"));
-	UploadTemperatureToDomoticz(398, p.FieldValue("Buitentemperatuur"));
-	UploadTemperatureToDomoticz(436, p.FieldValue("Van bron"));
-	UploadTemperatureToDomoticz(437, p.FieldValue("Naar bron"));
-	UploadTemperatureToDomoticz(438, p.FieldValue("CV retour"));
-	UploadTemperatureToDomoticz(439, p.FieldValue("CV aanvoer"));
-	UploadTemperatureToDomoticz(440, p.FieldValue("Flow sensor bron"));
-	UploadTemperatureToDomoticz(441, p.FieldValue("Verdamper temperatuur"));
-	UploadTemperatureToDomoticz(442, p.FieldValue("Zuiggas temperatuur"));
-	UploadTemperatureToDomoticz(443, p.FieldValue("Persgas temperatuur"));
-	UploadTemperatureToDomoticz(444, p.FieldValue("Vloeistof temperatuur"));
-	UploadTemperatureToDomoticz(446, p.FieldValue("Boiler hoog"));
-	UploadTemperatureToDomoticz(447, p.FieldValue("Boiler laag"));
-	UploadCounterToDomoticz(448, p.FieldValue("State (0=init,1=uit,2=CV,3=boiler,4=vrijkoel,5=ontluchten)"));
-	UploadTemperatureToDomoticz(478, p.FieldValue("Kamertemperatuur"));
-	UploadCounterToDomoticz(479, p.FieldValue("Substatus (255=geen)"));
-	UploadTemperatureToDomoticz(481, p.FieldValue("Snelheid cv pomp (%)"));
-	UploadTemperatureToDomoticz(482, p.FieldValue("Snelheid bron pomp (%)"));
-	UploadTemperatureToDomoticz(483, p.FieldValue("Snelheid boiler pomp (%)"));
-	CheckChangeUploadSwitch(485, "Compressor aan/uit");
-	CheckChangeUploadSwitch(486, "Elektrisch element aan/uit");
-	CheckChangeUploadSwitch(487, "Fout aanwezig (0=J, 1=N)");
-	UploadCounterToDomoticz(488, p.FieldValue("Fout gevonden (foutcode)"));
+	if (config.LogToConsole)
+		printf("Buitentemperatuur: %s\n", p.FieldValue("Buitentemperatuur"));
+
+	if (config.LogToDomoticz)
+	{
+		UploadTemperatureToDomoticz(398, p.FieldValue("Buitentemperatuur"));
+		UploadTemperatureToDomoticz(436, p.FieldValue("Van bron"));
+		UploadTemperatureToDomoticz(437, p.FieldValue("Naar bron"));
+		UploadTemperatureToDomoticz(438, p.FieldValue("CV retour"));
+		UploadTemperatureToDomoticz(439, p.FieldValue("CV aanvoer"));
+		UploadTemperatureToDomoticz(440, p.FieldValue("Flow sensor bron"));
+		UploadTemperatureToDomoticz(441, p.FieldValue("Verdamper temperatuur"));
+		UploadTemperatureToDomoticz(442, p.FieldValue("Zuiggas temperatuur"));
+		UploadTemperatureToDomoticz(443, p.FieldValue("Persgas temperatuur"));
+		UploadTemperatureToDomoticz(444, p.FieldValue("Vloeistof temperatuur"));
+		UploadTemperatureToDomoticz(446, p.FieldValue("Boiler hoog"));
+		UploadTemperatureToDomoticz(447, p.FieldValue("Boiler laag"));
+		UploadCounterToDomoticz(448, p.FieldValue("State (0=init,1=uit,2=CV,3=boiler,4=vrijkoel,5=ontluchten)"));
+		UploadTemperatureToDomoticz(478, p.FieldValue("Kamertemperatuur"));
+		UploadCounterToDomoticz(479, p.FieldValue("Substatus (255=geen)"));
+		UploadTemperatureToDomoticz(481, p.FieldValue("Snelheid cv pomp (%)"));
+		UploadTemperatureToDomoticz(482, p.FieldValue("Snelheid bron pomp (%)"));
+		UploadTemperatureToDomoticz(483, p.FieldValue("Snelheid boiler pomp (%)"));
+		CheckChangeUploadSwitch(485, "Compressor aan/uit");
+		CheckChangeUploadSwitch(486, "Elektrisch element aan/uit");
+		CheckChangeUploadSwitch(487, "Fout aanwezig (0=J, 1=N)");
+		UploadCounterToDomoticz(488, p.FieldValue("Fout gevonden (foutcode)"));
+	}
 }
 
 void WriteMessageToSQLLite(unsigned char *buffer, int length)
@@ -295,7 +333,8 @@ void WriteMessageToSQLLite(unsigned char *buffer, int length)
 
 void processIncomingMessage(unsigned char *buffer, int length)
 {
-	//WriteMessageToSQLLite(buffer, length);
+	if (config.LogToSqlLite)
+		WriteMessageToSQLLite(buffer, length);
 
 	// Then process it further
 	char filename[128];
@@ -315,19 +354,29 @@ void processIncomingMessage(unsigned char *buffer, int length)
 		messagename = "Datalog";
 		sprintf(filename, "data/%02X%02X.txt", buffer[1], buffer[2]); // TODO: add timestamp??
 		
-		ParseDatalogHeatPump(buffer, length);
-		// ParseDatalogAutotemp(buffer);
+		if (config.DeviceType == DEVICE_ID_WARMTEPOMP)
+			ParseDatalogHeatPump(buffer, length);
+		
+		if (config.DeviceType == DEVICE_ID_AUTOTEMP)
+			ParseDatalogAutotemp(buffer, length);
 	}
 	else
 	{
 		messagename = "Unknown";
 		sprintf(filename, "data/%02X%02X.txt", buffer[1], buffer[2]);
 	}
-	// string data = bufferToReadableString(buffer, length);
+	
+	if (config.LogToFile)
+	{
+		string data = bufferToReadableString(buffer, length);
 
-	// cout << "processing message " << messagename << " to " << filename << endl;
-	// cout << data << endl;
-	// writeToFile(filename, data);
+		if (config.LogToConsole)
+		{
+			cout << "processing message " << messagename << " to " << filename << endl;
+			cout << data << endl;
+		}
+		writeToFile(filename, data);
+	}
 }
 
 string bufferToReadableString(unsigned char *buffer, int length)
