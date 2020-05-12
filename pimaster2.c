@@ -46,10 +46,12 @@ void HandleKeyBoardInput(int file_i2c);
 #define KEY_R 114
 #define KEY_S 115
 #define KEY_0 48
+#define KEY_2 50
 #define KEY_5 53
 #define KEY_6 54
 #define KEY_X 120
 #define KEY_D 100	// ophalen datatype
+#define KEY_UP_O 79 // ophalen autotemp settings
 #define KEY_A 97	// ophalen datalog
 #define KEY_C 99	// vraag config
 #define KEY_I 105	// vraag ventielaanwezig
@@ -114,6 +116,12 @@ void SendMessageForInput(int file_i2c, int c)
 			printf("Send message Ophalen Setting 50\n");
 		break;
 
+	case KEY_2:
+		ConstructOphalensetting(62);
+		if (SendMessage(file_i2c, ophalenSettingMessage+1, 25)==0)
+			printf("Send message Ophalen Setting 62\n");
+		break;
+
 	case KEY_6:
 		if (SendMessage(file_i2c, MESSAGE_OPHALENSETTING69, MESSAGE_OPHALENSETTING69_LENGTH)==0)
 			printf("Send message Ophalen Setting 69\n");
@@ -154,6 +162,18 @@ void SendMessageForInput(int file_i2c, int c)
 				break;
 			sleep(5);	// 1 second
 		}
+
+	case KEY_UP_O:
+		for (int i=0;i<=95;i++)
+		{
+			ConstructOphalensetting(i);
+			if (SendMessage(file_i2c, ophalenSettingMessage+1, 25)==0)
+				printf("Send message Ophalensetting(%d)\n", i);
+			else
+				break;
+			sleep(5);	// 1 second
+		}
+	
 		
 	case KEY_N:
 		for (int i=0;i<=0x26;i++)
@@ -213,8 +233,10 @@ void PrintHelp()
 	printf("? = Help\n");
 	printf("r = GetRegelaar\n");
 	printf("s = Ophalen Serienummer\n");
-	printf("o = Ophalen alle settings (0x00 tot 0x94)");
+	printf("o = Ophalen alle WPU settings (0x00 tot 0x94 - 148)\n");
+	printf("O = Ophalen alle Autotemp settings (0 t/m 95)\n");
 	printf("0 = Ophalen Setting 0\n");
+	printf("2 = Ophalen Setting 62\n");
 	printf("5 = Ophalen Setting 50\n");
 	printf("6 = Ophalen Setting 69\n");
 	printf("d = Ophalen DataType\n");

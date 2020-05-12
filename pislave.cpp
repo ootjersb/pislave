@@ -36,7 +36,7 @@ const int slaveAddress = 0x40; // <-- 0x40 is 7 bit address of 0x80
 bsc_xfer_t xfer; // Struct to control data flow
 int command = 0; // -1=exit, 0=read mode, 1=sendgetregelaar
 Config config;
-DatalogParser p(DEVICE_ID_AUTOTEMP);
+DatalogParser p(config.DeviceType);
 
 int main() 
 {
@@ -366,14 +366,16 @@ void processIncomingMessage(unsigned char *buffer, int length)
 		sprintf(filename, "data/%02X%02X.txt", buffer[1], buffer[2]);
 	}
 	
+	string data = bufferToReadableString(buffer, length);
+	if (config.LogToConsole)
+	{
+		cout << data << endl;
+	}
 	if (config.LogToFile)
 	{
-		string data = bufferToReadableString(buffer, length);
-
 		if (config.LogToConsole)
 		{
-			cout << "processing message " << messagename << " to " << filename << endl;
-			cout << data << endl;
+			cout << "Writing message " << messagename << " to " << filename << endl;
 		}
 		writeToFile(filename, data);
 	}
