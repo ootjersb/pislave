@@ -276,13 +276,33 @@ void ParseDatalogAutotemp(unsigned char *buffer, int length)
 	{
 		// Outside temperature is now logged by WPU reader
 		// UploadTemperatureToDomoticz(398, outsideTemp);
+		UploadTemperatureToDomoticz(592, p.FieldValue("Ruimte 1 temp"));
 		UploadTemperatureToDomoticz(576, p.FieldValue("Ruimte 3 temp"));
 		UploadTemperatureToDomoticz(577, p.FieldValue("Ruimte 4 temp"));
 		UploadTemperatureToDomoticz(578, p.FieldValue("Ruimte 2 temp"));
 		UploadTemperatureToDomoticz(579, p.FieldValue("Ruimte 5 temp"));
 		UploadTemperatureToDomoticz(580, p.FieldValue("Ruimte 6 temp"));
 		UploadTemperatureToDomoticz(581, p.FieldValue("Gewenst vermogen"));
-		UploadCounterToDomoticz(582, p.FieldValue("Rest cyclustijd"));
+		UploadTemperatureToDomoticz(598, p.FieldValue("Rest cyclustijd"));
+		UploadTemperatureToDomoticz(599, p.FieldValue("Comm Ruimte A"));
+		UploadTemperatureToDomoticz(595, p.FieldValue("Comm Ruimte B"));
+		UploadTemperatureToDomoticz(594, p.FieldValue("Comm Ruimte C"));
+		UploadTemperatureToDomoticz(584, p.FieldValue("Comm Ruimte D"));
+		UploadTemperatureToDomoticz(596, p.FieldValue("Comm Ruimte E"));
+		UploadTemperatureToDomoticz(597, p.FieldValue("Comm Ruimte F"));
+		UploadTemperatureToDomoticz(585, p.FieldValue("Ruimte 1 setp"));
+		UploadTemperatureToDomoticz(586, p.FieldValue("Ruimte 3 setp"));
+		UploadTemperatureToDomoticz(587, p.FieldValue("Ruimte 4 setp"));
+		UploadTemperatureToDomoticz(588, p.FieldValue("Ruimte 2 setp"));
+		UploadTemperatureToDomoticz(589, p.FieldValue("Ruimte 5 setp"));
+		UploadTemperatureToDomoticz(590, p.FieldValue("Ruimte 6 setp"));
+		UploadCounterToDomoticz(591, p.FieldValue("Foutcode"));
+		UploadTemperatureToDomoticz(593, p.FieldValue("Ruimte 1 vermogen %"));
+		UploadTemperatureToDomoticz(600, p.FieldValue("Ruimte 3 vermogen %"));
+		UploadTemperatureToDomoticz(601, p.FieldValue("Ruimte 4 vermogen %"));
+		UploadTemperatureToDomoticz(602, p.FieldValue("Ruimte 2 vermogen %"));
+		UploadTemperatureToDomoticz(603, p.FieldValue("Ruimte 5 vermogen %"));
+		UploadTemperatureToDomoticz(604, p.FieldValue("Ruimte 6 vermogen %"));
 	}
 }
 

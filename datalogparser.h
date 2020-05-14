@@ -4,7 +4,7 @@
 #include "field.h"
 
 #define FIELD_COUNT_WARMTEPOMP 	28
-#define FIELD_COUNT_AUTOTEMP 	25
+#define FIELD_COUNT_AUTOTEMP 	37
 
 #define DEVICE_ID_WARMTEPOMP 13
 #define DEVICE_ID_AUTOTEMP   15
@@ -28,8 +28,8 @@ class DatalogParser
 
     private:
 		char errorMessage[100];
-		char fieldValues[FIELD_COUNT_WARMTEPOMP][50];	// only the bigger of the two taken here
-		char previousValues[FIELD_COUNT_WARMTEPOMP][50];	// only the bigger of the two taken here
+		char fieldValues[FIELD_COUNT_AUTOTEMP][50];	// only the bigger of the two taken here
+		char previousValues[FIELD_COUNT_AUTOTEMP][50];	// only the bigger of the two taken here
         Field *config;
         Field warmtepompConfig[FIELD_COUNT_WARMTEPOMP] {{ 0, SignedIntDec2, "Buitentemperatuur"}, 
                                         { 2, SignedIntDec2, "Boiler laag"},
@@ -66,12 +66,24 @@ class DatalogParser
                                                     { 3, Byte, "Warmtebron"},
                                                     { 4, Byte, "Foutcode"},
                                                     { 5, Byte, "Gewenst vermogen"},
-                                                    { 6, SignedIntDec2, "Ruimte 1 temp"},
+                                                    { 6, SignedIntDec2,  "Ruimte 1 temp"},
+													{ 8, SignedIntDec2,  "Ruimte 1 setp" },
+													{ 10, Byte,          "Ruimte 1 vermogen %" },
                                                     { 13, SignedIntDec2, "Ruimte 2 temp"},
+                                                    { 15, SignedIntDec2, "Ruimte 2 setp"},
+													{ 17, Byte,          "Ruimte 2 vermogen %" },
                                                     { 20, SignedIntDec2, "Ruimte 3 temp"},
+                                                    { 22, SignedIntDec2, "Ruimte 3 setp"},
+													{ 24, Byte,          "Ruimte 3 vermogen %" },
                                                     { 27, SignedIntDec2, "Ruimte 4 temp"},
+                                                    { 29, SignedIntDec2, "Ruimte 4 setp"},
+													{ 31, Byte,          "Ruimte 4 vermogen %" },
                                                     { 34, SignedIntDec2, "Ruimte 5 temp"},
+                                                    { 36, SignedIntDec2, "Ruimte 5 setp"},
+													{ 38, Byte,          "Ruimte 5 vermogen %" },
                                                     { 41, SignedIntDec2, "Ruimte 6 temp"},
+                                                    { 43, SignedIntDec2, "Ruimte 6 setp"},
+													{ 45, Byte,          "Ruimte 6 vermogen %" },
                                                     { 90, Byte, "Toestand uit"},
                                                     { 91, Byte, "Toestand koel"},
                                                     { 92, Byte, "Toestand verwarmen"},
