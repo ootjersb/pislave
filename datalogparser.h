@@ -3,7 +3,7 @@
 
 #include "field.h"
 
-#define FIELD_COUNT_WARMTEPOMP 	28
+#define FIELD_COUNT_WARMTEPOMP 	29
 #define FIELD_COUNT_AUTOTEMP 	37
 
 #define DEVICE_ID_WARMTEPOMP 13
@@ -55,6 +55,7 @@ class DatalogParser
                                         { 47, Byte, "Fout aanwezig (0=J, 1=N)"},
                                         { 48, Byte, "Vrijkoelen actief (0=uit, 1=aan)"},
 										{ 51, SignedIntDec2, "Kamertemperatuur"},
+										{ 55, Byte, "Warmtevraag"},
                                         { 56, Byte, "State (0=init,1=uit,2=CV,3=boiler,4=vrijkoel,5=ontluchten)"},
                                         { 57, Byte, "Substatus (255=geen)"},
                                         { 67, Byte, "Fout gevonden (foutcode)"},

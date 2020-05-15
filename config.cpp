@@ -3,7 +3,7 @@
 
 Config::Config()
 {
-	DeviceType = DEVICE_ID_AUTOTEMP;
+	DeviceType = DEVICE_ID_WARMTEPOMP;
 	LogToFile = false;
 	LogToSqlLite = false;
 	LogToDomoticz = true;

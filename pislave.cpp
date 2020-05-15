@@ -339,6 +339,8 @@ void ParseDatalogHeatPump(unsigned char *buffer, int length)
 		CheckChangeUploadSwitch(486, "Elektrisch element aan/uit");
 		CheckChangeUploadSwitch(487, "Fout aanwezig (0=J, 1=N)");
 		UploadCounterToDomoticz(488, p.FieldValue("Fout gevonden (foutcode)"));
+		UploadTemperatureToDomoticz(605, p.FieldValue("Warmtevraag"));
+		UploadTemperatureToDomoticz(606, p.FieldValue("Vrijkoelen interval (sec)"));
 	}
 }
 
