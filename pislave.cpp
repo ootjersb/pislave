@@ -364,17 +364,17 @@ void processIncomingMessage(unsigned char *buffer, int length)
 	if (buffer[1] == 0xA4 && buffer[2] == 0x10)	// ophalen setting
 	{
 		messagename = "OphalenSetting";
-		sprintf(filename, "data/%02X%02X-%02X.txt", buffer[1], buffer[2], buffer[17+5]);
+		sprintf(filename, "/home/pi/pislave/data/%02X%02X-%02X.txt", buffer[1], buffer[2], buffer[17+5]);
 	}
 	else if (buffer[1] == 0xC0 && buffer[2] == 0x30) // ophalen config
 	{
 		messagename = "OphalenConfig";
-		sprintf(filename, "data/%02X%02X-%02X%02X%02X%02X.txt", buffer[1], buffer[2], buffer[5+0], buffer[5+1], buffer[5+2], buffer[5+3]);
+		sprintf(filename, "/home/pi/pislave/data/%02X%02X-%02X%02X%02X%02X.txt", buffer[1], buffer[2], buffer[5+0], buffer[5+1], buffer[5+2], buffer[5+3]);
 	}
 	else if (buffer[1] == 0xA4 && buffer[2] == 0x01) // datalog
 	{
 		messagename = "Datalog";
-		sprintf(filename, "data/%02X%02X.txt", buffer[1], buffer[2]); // TODO: add timestamp??
+		sprintf(filename, "/home/pi/pislave/data/%02X%02X.txt", buffer[1], buffer[2]); // TODO: add timestamp??
 		
 		if (config.DeviceType == DEVICE_ID_WARMTEPOMP)
 			ParseDatalogHeatPump(buffer, length);
@@ -385,7 +385,7 @@ void processIncomingMessage(unsigned char *buffer, int length)
 	else
 	{
 		messagename = "Unknown";
-		sprintf(filename, "data/%02X%02X.txt", buffer[1], buffer[2]);
+		sprintf(filename, "/home/pi/pislave/data/%02X%02X.txt", buffer[1], buffer[2]);
 	}
 	
 	string data = bufferToReadableString(buffer, length);

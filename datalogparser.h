@@ -59,7 +59,7 @@ class DatalogParser
                                         { 56, Byte, "State (0=init,1=uit,2=CV,3=boiler,4=vrijkoel,5=ontluchten)"},
                                         { 57, Byte, "Substatus (255=geen)"},
                                         { 67, Byte, "Fout gevonden (foutcode)"},
-                                        { 92, Byte, "Vrijkoelen interval (sec)"}};
+                                        { 92, UnsignedInt, "Vrijkoelen interval (sec)"}};
 
         Field autotempConfig[FIELD_COUNT_AUTOTEMP] {{ 0, Byte, "Modus"}, 
                                                     { 1, Byte, "Toestand"},

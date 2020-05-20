@@ -29,6 +29,8 @@ const char MESSAGE_VRAAGVENTIELAANWEZIG[10] = {0x80, 0xC0, 0x30, 0x04, 0x04, 0x0
 const int MESSAGE_VRAAGVENTIELAANWEZIG_LENGTH = 10;
 const char MESSAGE_VRAAGCOUNTERS[6] = {0x80, 0xC2, 0x10, 0x04, 0x00, 0x28};
 const int MESSAGE_VRAAGCOUNTERS_LENGTH = 6;
+const int MESSAGE_SENDSETTING_LENGTH = 25;
+const char MESSAGE_SENDSETTING[25] = {0x80, 0xA4, 0x10, 0x06, 0x13, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x87, 0x00, 0xA9};
 char ophalenSettingMessage[26] = { 0x82, 0x80, 0xA4, 0x10, 0x04, 0x13, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x33 };
 char ophalenConfigMessage[11] = { 0x82,0x80, 0xC0, 0x30, 0x04, 0x04, 0x01, 0x00, 0x00, 0x01, 0x04 };
 
@@ -58,6 +60,7 @@ void HandleKeyBoardInput(int file_i2c);
 #define KEY_V 118 	// vraag counters
 #define KEY_O 111	// ophalen alle settings
 #define KEY_N 110 	// ophalen alle configs
+#define KEY_Z 122 	// zenden setting 135
 
 int main(int argc, char *argv[])
 {
@@ -162,6 +165,7 @@ void SendMessageForInput(int file_i2c, int c)
 				break;
 			sleep(5);	// 1 second
 		}
+		break;
 
 	case KEY_UP_O:
 		for (int i=0;i<=95;i++)
@@ -173,7 +177,7 @@ void SendMessageForInput(int file_i2c, int c)
 				break;
 			sleep(5);	// 1 second
 		}
-	
+		break;
 		
 	case KEY_N:
 		for (int i=0;i<=0x26;i++)
@@ -194,6 +198,13 @@ void SendMessageForInput(int file_i2c, int c)
 				break;
 			sleep(5);	// 1 second
 		}
+		break;
+		
+	case KEY_Z: // zenden setting
+		if (SendMessage(file_i2c, MESSAGE_SENDSETTING, MESSAGE_SENDSETTING_LENGTH)==0)
+			printf("Send message to set setting 134\n");
+		break;
+
 
 	case KEY_X:
 		printf("Stopping\n");
@@ -245,6 +256,7 @@ void PrintHelp()
 	printf("n = Vraag alle configs (warmtepomp)\n");
 	printf("i = Ventiel aanwezig\n");
 	printf("v = Vraag counters\n");
+	printf("z = Zending setting 135 - 0.1\n");
 	printf("x = Exit\n");
 }
 
