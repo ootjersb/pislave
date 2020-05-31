@@ -3,6 +3,7 @@
 #include <fcntl.h>				//Needed for I2C port
 #include <sys/ioctl.h>			//Needed for I2C port
 #include <linux/i2c-dev.h>		//Needed for I2C port
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -31,6 +32,8 @@ const char MESSAGE_VRAAGCOUNTERS[6] = {0x80, 0xC2, 0x10, 0x04, 0x00, 0x28};
 const int MESSAGE_VRAAGCOUNTERS_LENGTH = 6;
 const int MESSAGE_SENDSETTING_LENGTH = 25;
 const char MESSAGE_SENDSETTING[25] = {0x80, 0xA4, 0x10, 0x06, 0x13, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x87, 0x00, 0xA9};
+const char MESSAGE_C220[6] = {0x80, 0xC2, 0x20, 0x04, 0x00, 0x18};
+const int MESSAGE_C220_LENGTH = 6;
 char ophalenSettingMessage[26] = { 0x82, 0x80, 0xA4, 0x10, 0x04, 0x13, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x33 };
 char ophalenConfigMessage[11] = { 0x82,0x80, 0xC0, 0x30, 0x04, 0x04, 0x01, 0x00, 0x00, 0x01, 0x04 };
 
@@ -43,6 +46,8 @@ char *ConstructOphalenConfig(int settingNr, int counterNr);
 int OpenBus(int addr);
 void SendMessageForInput(int file_i2c, int c);
 void HandleKeyBoardInput(int file_i2c);
+int ReadInputFile(int file_i2c, char *filename);
+void ConvertHexToChar(char *hex, char *buffer);
 
 #define KEY_QUESTION 63
 #define KEY_R 114
@@ -68,16 +73,95 @@ int main(int argc, char *argv[])
 	if (file_i2c_82<0)
 		return file_i2c_82;
 
-	if (argc<2)
+	if (argc<2)  // No arguments means keyboard input
 	{
 		HandleKeyBoardInput(file_i2c_82);
 	}
-	else
+	else if (argc==2) // One argument, means the keyboard input has been placed on the command line
 	{
 		int c = atoi(argv[1]);
 		SendMessageForInput(file_i2c_82, c);
 		// c = getchar();
 	}
+	else if (argc==3) 
+	{
+		// This could be -f input.txt
+		// Read the input message from the given input file, and then send it
+		if (strcmp(argv[1],"-f")!=0)
+		{
+			printf("option is not supported; only -f supported\n");
+			return 1;
+		}
+		return ReadInputFile(file_i2c_82, argv[2]);
+	}
+	return 0;
+}
+
+int ReadInputFile(int file_i2c, char *filename)
+{
+	int ch;
+	FILE *fp;
+	char byteBuffer[2];
+	char output[1024];
+
+	printf("Reading input file %s\n", filename);
+	fp = fopen(filename, "r"); // read mode.
+	if (fp == NULL) 
+	{ 
+		printf("failed to open file\n");
+		return 2;
+	}
+	int count = 0;
+	int offset = 0;
+	do
+	{
+		ch = fgetc(fp);
+		if ((ch == '[') || (ch==']') || (ch==' '))
+			continue;
+		if (ch == EOF) 
+			break ;
+		
+		byteBuffer[count] = ch;
+		count++;
+		if (count==2)
+		{
+			count=0;
+			// check contents; if 0x then ignore
+			if ((byteBuffer[0]=='0') && (byteBuffer[1]=='x'))
+				continue;
+
+			output[offset++] = byteBuffer[0];
+			output[offset++] = byteBuffer[1];
+		}
+	} while (1);
+	
+	for (int i=0;i<offset;i++)
+		printf("%c", output[i]);
+	printf("\n");
+
+	char buffer[offset];
+	ConvertHexToChar(output, buffer);
+	int startpos=0;
+	if (buffer[0]==0x82)
+		startpos = 1;
+	int length = offset/2;
+	if (SendMessage(file_i2c, buffer+startpos, length-startpos)==0)
+		printf("Send message, %d bytes\n", length-startpos);
+		
+	fclose(fp);
+	return 0;	
+}
+
+void ConvertHexToChar(char *hex, char *buffer)
+{
+	char *pos = hex;
+	int length = strlen(hex)/2;
+	
+     /* WARNING: no sanitization or error-checking whatsoever */
+    for (size_t count = 0; count < length; count++) {
+        sscanf(pos, "%2hhx", &buffer[count]);
+        pos += 2;
+    }
 }
 
 void HandleKeyBoardInput(int file_i2c)
@@ -85,7 +169,8 @@ void HandleKeyBoardInput(int file_i2c)
 	int c;
 	do
 	{
-		printf("Type a command (? = help)\n");
+		if (c!=10)
+			printf("Type a command (? = help)\n");
 		c = getchar();
 		SendMessageForInput(file_i2c,c);
 	} while (c!=KEY_X);
@@ -205,13 +290,20 @@ void SendMessageForInput(int file_i2c, int c)
 			printf("Send message to set setting 134\n");
 		break;
 
+	case (int) 'q':
+		if (SendMessage(file_i2c, MESSAGE_C220, MESSAGE_C220_LENGTH)==0)
+			printf("Send message C2 20\n");
+		break;
 
 	case KEY_X:
 		printf("Stopping\n");
 		break;
 	
+	case 10:	// ignore the return
+		break;
+	
 	default:
-		printf("Unknown command\n");
+		printf("Unknown command (%d)\n", c);
 		break;
 	}
 }
@@ -242,6 +334,7 @@ int OpenBus(int addr)
 void PrintHelp()
 {
 	printf("? = Help\n");
+	printf("q = Versturen C2 20\n");
 	printf("r = GetRegelaar\n");
 	printf("s = Ophalen Serienummer\n");
 	printf("o = Ophalen alle WPU settings (0x00 tot 0x94 - 148)\n");

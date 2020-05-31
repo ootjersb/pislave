@@ -237,7 +237,35 @@ void CheckChangeUploadSwitch(int idx, string label)
 {
 	if (p.FieldChanged(label))
 	{
-		UploadSwitchToDomoticz(idx, p.FieldValue(label));
+		if (config.LogToConsole)
+			printf("%s: %s\n", label.c_str(), p.FieldValue(label));
+		
+		if (config.LogToDomoticz)
+			UploadSwitchToDomoticz(idx, p.FieldValue(label));
+	}
+}
+
+void LogTemperatureFromLabel(int idx, string label)
+{
+	if (p.FieldChanged(label))
+	{
+		if (config.LogToConsole)
+			printf("%s: %s\n", label.c_str(), p.FieldValue(label));
+		
+		if (config.LogToDomoticz)
+			UploadTemperatureToDomoticz(idx, p.FieldValue(label));
+	}
+}
+
+void LogCounterFromLabel(int idx, string label)
+{
+	if (p.FieldChanged(label))
+	{
+		if (config.LogToConsole)
+			printf("%s: %s\n", label.c_str(), p.FieldValue(label));
+		
+		if (config.LogToDomoticz)
+			UploadCounterToDomoticz(idx, p.FieldValue(label));
 	}
 }
 
@@ -250,98 +278,67 @@ void ParseDatalogAutotemp(unsigned char *buffer, int length)
 		return;
 	}
 
-	float outsideTemp = (((int) buffer[155] << 8) + (int) buffer[156])/100.0;
-
-	int commTellerA = ((int) buffer[161]<<8) + (int) buffer[162];
-	int commTellerB = ((int) buffer[163]<<8) + (int) buffer[164];
-	int commTellerC = ((int) buffer[165]<<8) + (int) buffer[166];
-	int commTellerD = ((int) buffer[167]<<8) + (int) buffer[168];
-	int commTellerE = ((int) buffer[169]<<8) + (int) buffer[170];
-	int commTellerF = ((int) buffer[171]<<8) + (int) buffer[172];
-	if (config.LogToConsole)
-	{
-		printf("Buitentemperatuur: %s\n", p.FieldValue("Buitentemperatuur"));
-		printf("Gewenst vermogen: %s\n", p.FieldValue("Gewenst vermogen"));
-		printf("Ruimte 1 temp: %s\n", p.FieldValue("Ruimte 1 temp"));
-		printf("Ruimte 2 temp: %s\n", p.FieldValue("Ruimte 2 temp"));
-		printf("Ruimte 3 temp: %s\n", p.FieldValue("Ruimte 3 temp"));
-		printf("Ruimte 4 temp: %s\n", p.FieldValue("Ruimte 4 temp"));
-		printf("Ruimte 5 temp: %s\n", p.FieldValue("Ruimte 5 temp"));
-		printf("Ruimte 6 temp: %s\n", p.FieldValue("Ruimte 6 temp"));
-		printf("Comm tellers A: %d, B: %d, C: %d, D:%d, E: %d, F: %d\n", commTellerA, commTellerB, commTellerC, commTellerD, commTellerE, commTellerF);
-		printf("Rest cyclustijd %s\n", p.FieldValue("Rest cyclustijd"));
-	}
-	
-	if (config.LogToDomoticz)
-	{
-		// Outside temperature is now logged by WPU reader
-		// UploadTemperatureToDomoticz(398, outsideTemp);
-		UploadTemperatureToDomoticz(592, p.FieldValue("Ruimte 1 temp"));
-		UploadTemperatureToDomoticz(576, p.FieldValue("Ruimte 3 temp"));
-		UploadTemperatureToDomoticz(577, p.FieldValue("Ruimte 4 temp"));
-		UploadTemperatureToDomoticz(578, p.FieldValue("Ruimte 2 temp"));
-		UploadTemperatureToDomoticz(579, p.FieldValue("Ruimte 5 temp"));
-		UploadTemperatureToDomoticz(580, p.FieldValue("Ruimte 6 temp"));
-		UploadTemperatureToDomoticz(581, p.FieldValue("Gewenst vermogen"));
-		UploadTemperatureToDomoticz(598, p.FieldValue("Rest cyclustijd"));
-		UploadTemperatureToDomoticz(599, p.FieldValue("Comm Ruimte A"));
-		UploadTemperatureToDomoticz(595, p.FieldValue("Comm Ruimte B"));
-		UploadTemperatureToDomoticz(594, p.FieldValue("Comm Ruimte C"));
-		UploadTemperatureToDomoticz(584, p.FieldValue("Comm Ruimte D"));
-		UploadTemperatureToDomoticz(596, p.FieldValue("Comm Ruimte E"));
-		UploadTemperatureToDomoticz(597, p.FieldValue("Comm Ruimte F"));
-		UploadTemperatureToDomoticz(585, p.FieldValue("Ruimte 1 setp"));
-		UploadTemperatureToDomoticz(586, p.FieldValue("Ruimte 3 setp"));
-		UploadTemperatureToDomoticz(587, p.FieldValue("Ruimte 4 setp"));
-		UploadTemperatureToDomoticz(588, p.FieldValue("Ruimte 2 setp"));
-		UploadTemperatureToDomoticz(589, p.FieldValue("Ruimte 5 setp"));
-		UploadTemperatureToDomoticz(590, p.FieldValue("Ruimte 6 setp"));
-		UploadCounterToDomoticz(591, p.FieldValue("Foutcode"));
-		UploadTemperatureToDomoticz(593, p.FieldValue("Ruimte 1 vermogen %"));
-		UploadTemperatureToDomoticz(600, p.FieldValue("Ruimte 3 vermogen %"));
-		UploadTemperatureToDomoticz(601, p.FieldValue("Ruimte 4 vermogen %"));
-		UploadTemperatureToDomoticz(602, p.FieldValue("Ruimte 2 vermogen %"));
-		UploadTemperatureToDomoticz(603, p.FieldValue("Ruimte 5 vermogen %"));
-		UploadTemperatureToDomoticz(604, p.FieldValue("Ruimte 6 vermogen %"));
-	}
+	// Outside temperature is now logged by WPU reader
+	// UploadTemperatureToDomoticz(398, outsideTemp);
+	LogTemperatureFromLabel(592, "Ruimte 1 temp");
+	LogTemperatureFromLabel(576, "Ruimte 3 temp");
+	LogTemperatureFromLabel(577, "Ruimte 4 temp");
+	LogTemperatureFromLabel(578, "Ruimte 2 temp");
+	LogTemperatureFromLabel(579, "Ruimte 5 temp");
+	LogTemperatureFromLabel(580, "Ruimte 6 temp");
+	LogTemperatureFromLabel(581, "Gewenst vermogen");
+	LogTemperatureFromLabel(598, "Rest cyclustijd");
+	LogTemperatureFromLabel(599, "Comm Ruimte A");
+	LogTemperatureFromLabel(595, "Comm Ruimte B");
+	LogTemperatureFromLabel(594, "Comm Ruimte C");
+	LogTemperatureFromLabel(584, "Comm Ruimte D");
+	LogTemperatureFromLabel(596, "Comm Ruimte E");
+	LogTemperatureFromLabel(597, "Comm Ruimte F");
+	LogTemperatureFromLabel(585, "Ruimte 1 setp");
+	LogTemperatureFromLabel(586, "Ruimte 3 setp");
+	LogTemperatureFromLabel(587, "Ruimte 4 setp");
+	LogTemperatureFromLabel(588, "Ruimte 2 setp");
+	LogTemperatureFromLabel(589, "Ruimte 5 setp");
+	LogTemperatureFromLabel(590, "Ruimte 6 setp");
+	LogTemperatureFromLabel(593, "Ruimte 1 vermogen %");
+	LogTemperatureFromLabel(600, "Ruimte 3 vermogen %");
+	LogTemperatureFromLabel(601, "Ruimte 4 vermogen %");
+	LogTemperatureFromLabel(602, "Ruimte 2 vermogen %");
+	LogTemperatureFromLabel(603, "Ruimte 5 vermogen %");
+	LogTemperatureFromLabel(604, "Ruimte 6 vermogen %");
+	LogCounterFromLabel(591, "Foutcode");
 }
-
 
 void ParseDatalogHeatPump(unsigned char *buffer, int length)
 {
 	if (!p.ParseWithHeader(buffer, length))
 		return;
 	
-	if (config.LogToConsole)
-		printf("Buitentemperatuur: %s\n", p.FieldValue("Buitentemperatuur"));
-
-	if (config.LogToDomoticz)
-	{
-		UploadTemperatureToDomoticz(398, p.FieldValue("Buitentemperatuur"));
-		UploadTemperatureToDomoticz(436, p.FieldValue("Van bron"));
-		UploadTemperatureToDomoticz(437, p.FieldValue("Naar bron"));
-		UploadTemperatureToDomoticz(438, p.FieldValue("CV retour"));
-		UploadTemperatureToDomoticz(439, p.FieldValue("CV aanvoer"));
-		UploadTemperatureToDomoticz(440, p.FieldValue("Flow sensor bron"));
-		UploadTemperatureToDomoticz(441, p.FieldValue("Verdamper temperatuur"));
-		UploadTemperatureToDomoticz(442, p.FieldValue("Zuiggas temperatuur"));
-		UploadTemperatureToDomoticz(443, p.FieldValue("Persgas temperatuur"));
-		UploadTemperatureToDomoticz(444, p.FieldValue("Vloeistof temperatuur"));
-		UploadTemperatureToDomoticz(446, p.FieldValue("Boiler hoog"));
-		UploadTemperatureToDomoticz(447, p.FieldValue("Boiler laag"));
-		UploadCounterToDomoticz(448, p.FieldValue("State (0=init,1=uit,2=CV,3=boiler,4=vrijkoel,5=ontluchten)"));
-		UploadTemperatureToDomoticz(478, p.FieldValue("Kamertemperatuur"));
-		UploadCounterToDomoticz(479, p.FieldValue("Substatus (255=geen)"));
-		UploadTemperatureToDomoticz(481, p.FieldValue("Snelheid cv pomp (%)"));
-		UploadTemperatureToDomoticz(482, p.FieldValue("Snelheid bron pomp (%)"));
-		UploadTemperatureToDomoticz(483, p.FieldValue("Snelheid boiler pomp (%)"));
-		CheckChangeUploadSwitch(485, "Compressor aan/uit");
-		CheckChangeUploadSwitch(486, "Elektrisch element aan/uit");
-		CheckChangeUploadSwitch(487, "Fout aanwezig (0=J, 1=N)");
-		UploadCounterToDomoticz(488, p.FieldValue("Fout gevonden (foutcode)"));
-		UploadTemperatureToDomoticz(605, p.FieldValue("Warmtevraag"));
-		UploadTemperatureToDomoticz(606, p.FieldValue("Vrijkoelen interval (sec)"));
-	}
+	LogTemperatureFromLabel(398, "Buitentemperatuur");
+	LogTemperatureFromLabel(436, "Van bron");
+	LogTemperatureFromLabel(437, "Naar bron");
+	LogTemperatureFromLabel(438, "CV retour");
+	LogTemperatureFromLabel(439, "CV aanvoer");
+	LogTemperatureFromLabel(440, "Flow sensor bron");
+	LogTemperatureFromLabel(441, "Verdamper temperatuur");
+	LogTemperatureFromLabel(442, "Zuiggas temperatuur");
+	LogTemperatureFromLabel(443, "Persgas temperatuur");
+	LogTemperatureFromLabel(444, "Vloeistof temperatuur");
+	LogTemperatureFromLabel(446, "Boiler hoog");
+	LogTemperatureFromLabel(447, "Boiler laag");
+	LogTemperatureFromLabel(478, "Kamertemperatuur");
+	LogTemperatureFromLabel(481, "Snelheid cv pomp (%)");
+	LogTemperatureFromLabel(482, "Snelheid bron pomp (%)");
+	LogTemperatureFromLabel(483, "Snelheid boiler pomp (%)");
+	LogTemperatureFromLabel(605, "Warmtevraag");
+	LogTemperatureFromLabel(606, "Vrijkoelen interval (sec)");
+	LogTemperatureFromLabel(615, "Druksensor");
+	CheckChangeUploadSwitch(485, "Compressor aan/uit");
+	CheckChangeUploadSwitch(486, "Elektrisch element aan/uit");
+	CheckChangeUploadSwitch(487, "Fout aanwezig (0=J, 1=N)");
+	LogCounterFromLabel(448, "State (0=init,1=uit,2=CV,3=boiler,4=vrijkoel,5=ontluchten)");
+	LogCounterFromLabel(479, "Substatus (255=geen)");
+	LogCounterFromLabel(488, "Fout gevonden (foutcode)");
 }
 
 void WriteMessageToSQLLite(unsigned char *buffer, int length)
@@ -369,7 +366,7 @@ void processIncomingMessage(unsigned char *buffer, int length)
 	else if (buffer[1] == 0xC0 && buffer[2] == 0x30) // ophalen config
 	{
 		messagename = "OphalenConfig";
-		sprintf(filename, "/home/pi/pislave/data/%02X%02X-%02X%02X%02X%02X.txt", buffer[1], buffer[2], buffer[5+0], buffer[5+1], buffer[5+2], buffer[5+3]);
+		sprintf(filename, "/home/pi/pislave/data/%02X%02X-%02X%02X%02X.txt", buffer[1], buffer[2], buffer[5+0], buffer[5+1], buffer[5+2]);
 	}
 	else if (buffer[1] == 0xA4 && buffer[2] == 0x01) // datalog
 	{
