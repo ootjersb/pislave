@@ -41,7 +41,7 @@ pislave is dependent upon:
 Upload to Raspberry Pi and compile with the instructions given in the source file itself.
 Easiest way to upload is just to clone this repository into the pi home directory.
 
-#Configuration
+# Configuration
 At the moment all of the settings and options are hardcoded. Most difficult configuration is probably bound to the model of the HeatPump itself. The parsing of the datalog message is model specific
 # Run
 Common operations works by launching first pislave and then pimaster2
@@ -68,7 +68,7 @@ You can use cron to schedule running the pimaster GetDatalog command. The cronta
 sudo ./pislave
 
 This will launch the slave and respond to data being send to I2C address 0x80 (which is 0x40 using 7 bit).
-Data being received is printed to the console.
+Data being received is handled accoring to the setting in config.cpp. This can be logged to console, domoticz or file
 
 Options for control:  
 x = Exit the program and close communication  
