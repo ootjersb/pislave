@@ -31,6 +31,7 @@ Wiring like this:
 # Dependencies
 pislave is dependent upon:
 - Curl: sudo apt-get install libcurl4-openssl-dev
+- pigpio: sudo apt-get install pigpio python-pigpio python3-pigpio
 - Sqlite3: sudo apt-get install libsqlite3-dev
 - Enabled I2C port: sudo raspi-config. Option 5 and enable I2C.
  
