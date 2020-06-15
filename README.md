@@ -6,6 +6,8 @@ the device to the WPU or Autotemp via UTP cable.
 The communication to the Itho devices works via I2C. You need both a master and a slave on the I2C bus.
 The Master is used to send requests to the WPU or Autotemp. The Slave is used to receive the answer.
 The Itho device is registered at address 0x82. The Raspberry Pi is registered at address 0x80.
+This project has been developed and tested with a Raspberry Pi 3B+. The Raspberry Pi Model 4 has a
+little different API, which has not been tested.
 
 The toolset:
 - pimaster.cpp: Initial attempt to send commands to the Itho devices. This one has been replaced by pimaster2.c
@@ -39,6 +41,8 @@ pislave is dependent upon:
 Upload to Raspberry Pi and compile with the instructions given in the source file itself.
 Easiest way to upload is just to clone this repository into the pi home directory.
 
+#Configuration
+At the moment all of the settings and options are hardcoded. Most difficult configuration is probably bound to the model of the HeatPump itself. The parsing of the datalog message is model specific
 # Run
 Common operations works by launching first pislave and then pimaster2
 
@@ -49,13 +53,16 @@ Reboot your Raspberry Pi.
 
 # Cron job
 You can use cron to schedule running the pimaster GetDatalog command. The crontab line for this is:
+```
 * * * * * /home/pi/pislave/pimaster2 97
+```
 
 # Todo
-- Proper start/stop control for the service
-- Proper syslog logging
-- Interrupt for receiving data
-- Integrating send (pimaster2) and receive (pislave) to single service.
+- [ ] Configuration options in configuration file
+- [ ] Proper start/stop control for the service
+- [ ] Proper syslog logging
+- [ ] Interrupt for receiving data
+- [ ] Integrating send (pimaster2) and receive (pislave) to single service.
 
 ## pislave
 sudo ./pislave
@@ -73,3 +80,8 @@ After pislave has been launched you can open a second session and launch pimaste
 Options for control:  
 r = GetRegelaar. This is a quite generic message that asks the connected device for its information (make, model and such), that is usually the start when you are new.  
 a = Retrieve the datalog. This is the most interesting message in the sense that it asks for the sensor read outs. The data differs per device.
+
+Another way of starting is by adding -f and a filename. This content of this file will be translated to a byte array and send. Example content:
+```
+[0x82 0x80 0xC2 0x10 0x04 0x00 0x28]
+```
