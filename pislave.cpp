@@ -245,10 +245,17 @@ void CheckChangeUploadSwitch(int idx, string label)
 	}
 }
 
-void LogTemperatureFromLabel(int idx, string label)
+void LogTemperatureFromLabel(int idx, string label, float max)
 {
 	if (p.FieldChanged(label))
 	{
+		float tempValue = atof(p.FieldValue(label));
+		if ((max>0.0) && (tempValue>max))
+		{
+			printf("Skipping bogus temperature %f for label %s\n", tempValue, label.c_str());
+			return;
+		}
+		
 		if (config.LogToConsole)
 			printf("%s: %s\n", label.c_str(), p.FieldValue(label));
 		
@@ -280,32 +287,32 @@ void ParseDatalogAutotemp(unsigned char *buffer, int length)
 
 	// Outside temperature is now logged by WPU reader
 	// UploadTemperatureToDomoticz(398, outsideTemp);
-	LogTemperatureFromLabel(592, "Ruimte 1 temp");
-	LogTemperatureFromLabel(576, "Ruimte 3 temp");
-	LogTemperatureFromLabel(577, "Ruimte 4 temp");
-	LogTemperatureFromLabel(578, "Ruimte 2 temp");
-	LogTemperatureFromLabel(579, "Ruimte 5 temp");
-	LogTemperatureFromLabel(580, "Ruimte 6 temp");
-	LogTemperatureFromLabel(581, "Gewenst vermogen");
-	LogTemperatureFromLabel(598, "Rest cyclustijd");
-	LogTemperatureFromLabel(599, "Comm Ruimte A");
-	LogTemperatureFromLabel(595, "Comm Ruimte B");
-	LogTemperatureFromLabel(594, "Comm Ruimte C");
-	LogTemperatureFromLabel(584, "Comm Ruimte D");
-	LogTemperatureFromLabel(596, "Comm Ruimte E");
-	LogTemperatureFromLabel(597, "Comm Ruimte F");
-	LogTemperatureFromLabel(585, "Ruimte 1 setp");
-	LogTemperatureFromLabel(586, "Ruimte 3 setp");
-	LogTemperatureFromLabel(587, "Ruimte 4 setp");
-	LogTemperatureFromLabel(588, "Ruimte 2 setp");
-	LogTemperatureFromLabel(589, "Ruimte 5 setp");
-	LogTemperatureFromLabel(590, "Ruimte 6 setp");
-	LogTemperatureFromLabel(593, "Ruimte 1 vermogen %");
-	LogTemperatureFromLabel(600, "Ruimte 3 vermogen %");
-	LogTemperatureFromLabel(601, "Ruimte 4 vermogen %");
-	LogTemperatureFromLabel(602, "Ruimte 2 vermogen %");
-	LogTemperatureFromLabel(603, "Ruimte 5 vermogen %");
-	LogTemperatureFromLabel(604, "Ruimte 6 vermogen %");
+	LogTemperatureFromLabel(592, "Ruimte 1 temp", 50.0);
+	LogTemperatureFromLabel(576, "Ruimte 3 temp", 50.0);
+	LogTemperatureFromLabel(577, "Ruimte 4 temp", 50.0);
+	LogTemperatureFromLabel(578, "Ruimte 2 temp", 50.0);
+	LogTemperatureFromLabel(579, "Ruimte 5 temp", 50.0);
+	LogTemperatureFromLabel(580, "Ruimte 6 temp", 50.0);
+	LogTemperatureFromLabel(581, "Gewenst vermogen", 100.0);
+	LogTemperatureFromLabel(598, "Rest cyclustijd", 2000.0);
+	LogTemperatureFromLabel(599, "Comm Ruimte A", 0.0);
+	LogTemperatureFromLabel(595, "Comm Ruimte B", 0.0);
+	LogTemperatureFromLabel(594, "Comm Ruimte C", 0.0);
+	LogTemperatureFromLabel(584, "Comm Ruimte D", 0.0);
+	LogTemperatureFromLabel(596, "Comm Ruimte E", 0.0);
+	LogTemperatureFromLabel(597, "Comm Ruimte F", 0.0);
+	LogTemperatureFromLabel(585, "Ruimte 1 setp", 50.0);
+	LogTemperatureFromLabel(586, "Ruimte 3 setp", 50.0);
+	LogTemperatureFromLabel(587, "Ruimte 4 setp", 50.0);
+	LogTemperatureFromLabel(588, "Ruimte 2 setp", 50.0);
+	LogTemperatureFromLabel(589, "Ruimte 5 setp", 50.0);
+	LogTemperatureFromLabel(590, "Ruimte 6 setp", 50.0);
+	LogTemperatureFromLabel(593, "Ruimte 1 vermogen %", 100.0);
+	LogTemperatureFromLabel(600, "Ruimte 3 vermogen %", 100.0);
+	LogTemperatureFromLabel(601, "Ruimte 4 vermogen %", 100.0);
+	LogTemperatureFromLabel(602, "Ruimte 2 vermogen %", 100.0);
+	LogTemperatureFromLabel(603, "Ruimte 5 vermogen %", 100.0);
+	LogTemperatureFromLabel(604, "Ruimte 6 vermogen %", 100.0);
 	LogCounterFromLabel(591, "Foutcode");
 }
 
@@ -314,25 +321,25 @@ void ParseDatalogHeatPump(unsigned char *buffer, int length)
 	if (!p.ParseWithHeader(buffer, length))
 		return;
 	
-	LogTemperatureFromLabel(398, "Buitentemperatuur");
-	LogTemperatureFromLabel(436, "Van bron");
-	LogTemperatureFromLabel(437, "Naar bron");
-	LogTemperatureFromLabel(438, "CV retour");
-	LogTemperatureFromLabel(439, "CV aanvoer");
-	LogTemperatureFromLabel(440, "Flow sensor bron");
-	LogTemperatureFromLabel(441, "Verdamper temperatuur");
-	LogTemperatureFromLabel(442, "Zuiggas temperatuur");
-	LogTemperatureFromLabel(443, "Persgas temperatuur");
-	LogTemperatureFromLabel(444, "Vloeistof temperatuur");
-	LogTemperatureFromLabel(446, "Boiler hoog");
-	LogTemperatureFromLabel(447, "Boiler laag");
-	LogTemperatureFromLabel(478, "Kamertemperatuur");
-	LogTemperatureFromLabel(481, "Snelheid cv pomp (%)");
-	LogTemperatureFromLabel(482, "Snelheid bron pomp (%)");
-	LogTemperatureFromLabel(483, "Snelheid boiler pomp (%)");
-	LogTemperatureFromLabel(605, "Warmtevraag");
-	LogTemperatureFromLabel(606, "Vrijkoelen interval (sec)");
-	LogTemperatureFromLabel(615, "Druksensor");
+	LogTemperatureFromLabel(398, "Buitentemperatuur", 50.0);
+	LogTemperatureFromLabel(436, "Van bron", 50.0);
+	LogTemperatureFromLabel(437, "Naar bron", 50.0);
+	LogTemperatureFromLabel(438, "CV retour", 50.0);
+	LogTemperatureFromLabel(439, "CV aanvoer", 50.0);
+	LogTemperatureFromLabel(440, "Flow sensor bron", 2000.0);
+	LogTemperatureFromLabel(441, "Verdamper temperatuur", 100.0);
+	LogTemperatureFromLabel(442, "Zuiggas temperatuur", 100.0);
+	LogTemperatureFromLabel(443, "Persgas temperatuur", 100.0);
+	LogTemperatureFromLabel(444, "Vloeistof temperatuur", 100.0);
+	LogTemperatureFromLabel(446, "Boiler hoog", 100.0);
+	LogTemperatureFromLabel(447, "Boiler laag", 100.0);
+	LogTemperatureFromLabel(478, "Kamertemperatuur", 50.0);
+	LogTemperatureFromLabel(481, "Snelheid cv pomp (%)", 100.0);
+	LogTemperatureFromLabel(482, "Snelheid bron pomp (%)", 100.0);
+	LogTemperatureFromLabel(483, "Snelheid boiler pomp (%)", 100.0);
+	LogTemperatureFromLabel(605, "Warmtevraag", 100.0);
+	LogTemperatureFromLabel(606, "Vrijkoelen interval (sec)", 0.0);
+	LogTemperatureFromLabel(615, "Druksensor", 0.0);
 	CheckChangeUploadSwitch(485, "Compressor aan/uit");
 	CheckChangeUploadSwitch(486, "Elektrisch element aan/uit");
 	CheckChangeUploadSwitch(487, "Fout aanwezig (0=J, 1=N)");
