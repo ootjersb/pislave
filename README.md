@@ -24,10 +24,10 @@ This project started from this forum thread: https://www.circuitsonline.net/foru
 The component involved is a level shifter, because the Itho units run on 5V instead of 3.3V.
 I used the Adafruit BSS138 level shifter: https://www.kiwi-electronics.nl/4-channel-i2c-safe-bi-directional-logic-level-converter-BSS138?search=adafruit%20i2c%20level%20shifter&description=true
 Wiring like this:
-- I2C-SDA: Raspberry Pi GPIO02 (PIN03) & GPIO18 (PIN12) to Level shifter Low (A1), Level shifter high (B1) to RJ-45 pin 2 (Orange)
-- I2C-SCL: Raspberry Pi GPIO19 (PIN35) & GPIO03 (PIN05) to Level shifter Low (A2), Level shifter high (B2) to RJ-45 pin 7 (White/Brown)
-- Raspberry Pi - GRND(PIN39) - Level shifter GRND Hi and Low - RJ45 Pin 6 (Green)
-- Raspberry Pi - 3.3V (PIN01) to Level shifter Low (LV)
+- I2C-SDA: Raspberry Pi GPIO02 (PIN03) & GPIO18 (PIN12) to Level shifter Low (A1), Level shifter high (B1) to RJ-45 pin 7 (White/Brown)
+- I2C-SCL: Raspberry Pi GPIO19 (PIN35) & GPIO03 (PIN05) to Level shifter Low (A2), Level shifter high (B2) to RJ-45 pin 2 (Orange)
+- Raspberry Pi - GRND(PIN39) - Level shifter GRND Hi and Low - RJ45 Pin 3 (White/Green)
+- Raspberry Pi - 3.3V (PIN01) to Level shifter Low (LV), Level shifter High (HV) to RJ-45 pin 5 (White/Blue)
 ![image](https://github.com/ootjersb/pislave/blob/master/wiring-schema.png?raw=true) 
  
 # Dependencies
