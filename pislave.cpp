@@ -25,7 +25,7 @@ using namespace std;
 
 void closeSlave();
 int getControlBits(int, bool);
-void *work(void *);
+void *registerCallback();
 void writeToFile(char *filename, string data);
 void processIncomingMessage(unsigned char *buffer, int length);
 string bufferToReadableString(unsigned char *buffer, int length);
@@ -34,39 +34,53 @@ int insertlog(char *datalog);
 
 const int slaveAddress = 0x40; // <-- 0x40 is 7 bit address of 0x80
 bsc_xfer_t xfer; // Struct to control data flow
-int command = 0; // -1=exit, 0=read mode, 1=sendgetregelaar
+int command = 0; // -1=exit, 0=read mode
 Config config;
 DatalogParser p(config.DeviceType);
 
-int main() 
+int main(int argc, char *argv[]) 
 {
-    pthread_t cThread;
-
     gpioInitialise();
     cout << "Initialized GPIOs\n";
 
-	work(NULL);
-/*
-    cout << "Starting a new thread to receive data" << endl;
-    if(pthread_create(&cThread, NULL, work, NULL))
-    {
-        perror("ERROR creating thread.");
-    }
+    // Close old device (if any)
+    xfer.control = getControlBits(slaveAddress, false); // To avoid conflicts when restarting
+    bscXfer(&xfer);
 
-    string strinput;
-    string exit_command = "x";
+	registerCallback();
 
-    cout << "Enter a command (x=exit): ";
-    while (strinput.compare(exit_command))
-    {
-        getline(cin, strinput);
-        cout << "You entered: " << strinput << endl;
-    }
-    cout << "stopping" << endl;
-    command = -1;
-    sleep(1);
+	if (argc<=1)
+	{
+		printf("Running in service mode; infinite loop\n");
+		while (1==1)
+		{
+			sleep(10);
+		}
+	}
+	else
+	{
+		if (strcmp("--debug", argv[1])==0)
+		{
+			printf("Running in debug mode\n");
+
+			string strinput;
+			string exit_command = "x";
+
+			cout << "Enter a command (x=exit): ";
+			while (strinput.compare(exit_command))
+			{
+				getline(cin, strinput);
+				cout << "You entered: " << strinput << endl;
+			}
+			cout << "stopping" << endl;
+			command = -1;
+		}
+		else
+		{
+			printf("Unknown option, only --debug is support to run in console mode\n");
+		}
+	}
     closeSlave();
-*/
 
     return 0;
 }
@@ -78,68 +92,38 @@ void ConvertCharToHex(unsigned char *buffer, char *converted, int bufferlength)
   }
 }
 
-void *work(void * parm)
-{
-    //  TODO: Add the pthread_kill to signal this thread instead of just shutting down
+void simple_bsc_event_callback(int event, uint32_t tick) {
+    bsc_xfer_t xfer;
+    int i = 0, status;
 
-    // Close old device (if any)
-    xfer.control = getControlBits(slaveAddress, false); // To avoid conflicts when restarting
-    bscXfer(&xfer);
-    // Set I2C slave address
-    xfer.control = getControlBits(slaveAddress, true);
-    int status = bscXfer(&xfer); // Should now be visible in I2C-Scanners
-
-    if (status >= 0)
-    {
-        cout << "Opened slave\n";
-        xfer.rxCnt = 0;
-        int loopcount = 0;
-        int receivedcount = 0;
-        unsigned char *buffer = new unsigned char[1000];
-        while(command!=-1)
-        {
-            bscXfer(&xfer);
-            if(xfer.rxCnt > 0) 
-            {
-                for(int i = 0; i < xfer.rxCnt; i++)
-                {
-                    buffer[receivedcount] = xfer.rxBuf[i];
-                    receivedcount++;
-                    // printf("0x%x", );
-                    // cout << std::hex << " 0x" << xfer.rxBuf[i];
-                }
-            }
-            else
-            {
-                loopcount++;
-                if (loopcount>10000)
-                {
-                    if (receivedcount>0)
-                    {
-                        // write buffer and clear all
-						processIncomingMessage(buffer, receivedcount);
-
-                        receivedcount = 0;
-                    }
-                    loopcount = 0;
-                }
-                else
-                {
-                    usleep(10); // 10 us
-                }
-            }
-        }
-        cout << "ended loop" << endl;
-        delete[] buffer;
+    xfer.control = getControlBits(slaveAddress, true); // (slaveAddress << 16) | 0x305;
+    status = bscXfer(&xfer);
+    if (! status ) {
+        fprintf(stderr, "process register failed.\n");
     }
-    else
-	{
-        cout << "Failed to open slave!!!\n";
-	}
-	
-	return NULL; // TODO: figure out what should be returned 
+    if (xfer.rxCnt){
+		unsigned char *buffer = new unsigned char[1000];
+		for(int i = 0; i < xfer.rxCnt; i++)
+			buffer[i] = xfer.rxBuf[i];
+
+		// write buffer and clear all
+		processIncomingMessage(buffer, xfer.rxCnt);
+    }
+
 }
 
+void *registerCallback()
+{
+    int status;
+    if ( ! eventSetFunc(PI_EVENT_BSC, simple_bsc_event_callback) ){
+        xfer.control = getControlBits(slaveAddress, true); // (slaveAddress << 16) | 0x305;
+        status = bscXfer(&xfer);
+        if (! status ) {
+            fprintf(stderr, "process register failed.\n");
+        }
+    }
+	return NULL; 
+}
 
 void closeSlave() {
     xfer.control = getControlBits(slaveAddress, false);
@@ -185,6 +169,7 @@ int getControlBits(int address /* max 127 */, bool open) {
         flags = /*RE:*/ (1 << 9) | /*TE:*/ (1 << 8) | /*I2:*/ (1 << 2) | /*EN:*/ (1 << 0);
     else // Close/Abort
         flags = /*BK:*/ (1 << 7) | /*I2:*/ (0 << 2) | /*EN:*/ (0 << 0);
+	// printf("flags=%d\n", flags);
 
     return (address << 16 /*= to the start of significant bits*/) | flags;
 }
