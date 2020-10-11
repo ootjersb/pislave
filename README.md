@@ -58,10 +58,8 @@ You can use cron to schedule running the pimaster GetDatalog command. The cronta
 ```
 
 # Todo
-- [ ] Configuration options in configuration file
 - [ ] Proper start/stop control for the service
-- [ ] Proper syslog logging
-- [ ] Interrupt for receiving data
+- [ ] Configuration options in configuration file
 - [ ] Integrating send (pimaster2) and receive (pislave) to single service.
 
 ## pislave
