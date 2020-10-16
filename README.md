@@ -43,11 +43,12 @@ Easiest way to upload is just to clone this repository into the pi home director
 
 # Configuration
 At the moment all of the settings and options are hardcoded. Most difficult configuration is probably bound to the model of the HeatPump itself. The parsing of the datalog message is model specific
+
 # Run
 Common operations works by launching first pislave and then pimaster2
 
 # Service installation
-The process can be run as system (no syslog logging yet however, and no start/stop control). Stopping is done by killing the pislave proces :-(
+The process can be run as system. The process reports output to console which is redirected to syslog by systemd.
 Copy file ithowp.service to /lib/systemd/system/ithowp.service.
 Reboot your Raspberry Pi.
 
@@ -62,9 +63,9 @@ You can use cron to schedule running the pimaster GetDatalog command. The cronta
 - [ ] Integrating send (pimaster2) and receive (pislave) to single service.
 
 ## pislave
-sudo ./pislave
+sudo ./pislave --debug
 
-This will launch the slave and respond to data being send to I2C address 0x80 (which is 0x40 using 7 bit).
+This will launch the receiver in debug mode and respond to data being send to I2C address 0x80 (which is 0x40 using 7 bit).
 Data being received is handled accoring to the setting in config.cpp. This can be logged to console, domoticz or file
 
 Options for control:  
