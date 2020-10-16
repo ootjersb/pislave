@@ -17,8 +17,12 @@
 #include <curl/curl.h>
 #include <stdlib.h>
 #include <sqlite3.h>
+#include <signal.h>
+
 #include "datalogparser.h"
 #include "config.h"
+
+#define SIGTERM_MSG "SIGTERM received\n"
 
 
 using namespace std;
@@ -31,16 +35,19 @@ void processIncomingMessage(unsigned char *buffer, int length);
 string bufferToReadableString(unsigned char *buffer, int length);
 int GetURL(char *myurl);
 int insertlog(char *datalog);
+void catch_sigterm();
+void sig_term_handler(int signum, siginfo_t *info, void *ptr);
 
 const int slaveAddress = 0x40; // <-- 0x40 is 7 bit address of 0x80
 bsc_xfer_t xfer; // Struct to control data flow
-int command = 0; // -1=exit, 0=read mode
 Config config;
 DatalogParser p(config.DeviceType);
+int stop = 0;	// 0 = running, 1 = stopping
 
 int main(int argc, char *argv[]) 
 {
     gpioInitialise();
+    catch_sigterm();
     cout << "Initialized GPIOs\n";
 
     // Close old device (if any)
@@ -52,10 +59,11 @@ int main(int argc, char *argv[])
 	if (argc<=1)
 	{
 		printf("Running in service mode; infinite loop\n");
-		while (1==1)
+		while (stop==0)
 		{
 			sleep(10);
 		}
+		printf("Stopping service\n");
 	}
 	else
 	{
@@ -73,7 +81,6 @@ int main(int argc, char *argv[])
 				cout << "You entered: " << strinput << endl;
 			}
 			cout << "stopping" << endl;
-			command = -1;
 		}
 		else
 		{
@@ -83,6 +90,23 @@ int main(int argc, char *argv[])
     closeSlave();
 
     return 0;
+}
+
+void sig_term_handler(int signum, siginfo_t *info, void *ptr)
+{
+    write(STDERR_FILENO, SIGTERM_MSG, sizeof(SIGTERM_MSG));
+	stop = 1;
+}
+
+void catch_sigterm()
+{
+    static struct sigaction _sigact;
+
+    memset(&_sigact, 0, sizeof(_sigact));
+    _sigact.sa_sigaction = sig_term_handler;
+    _sigact.sa_flags = SA_SIGINFO;
+
+    sigaction(SIGTERM, &_sigact, NULL);
 }
 
 void ConvertCharToHex(unsigned char *buffer, char *converted, int bufferlength)
