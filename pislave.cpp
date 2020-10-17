@@ -38,14 +38,18 @@ int insertlog(char *datalog);
 void catch_sigterm();
 void sig_term_handler(int signum, siginfo_t *info, void *ptr);
 
+string directory;
 const int slaveAddress = 0x40; // <-- 0x40 is 7 bit address of 0x80
 bsc_xfer_t xfer; // Struct to control data flow
-Config config;
-DatalogParser p(config.DeviceType);
+Config *config;
+DatalogParser *p;
 int stop = 0;	// 0 = running, 1 = stopping
 
 int main(int argc, char *argv[]) 
 {
+	directory = argv[0];
+	config = new Config(directory);
+	p = new DatalogParser(config->DeviceType);
     gpioInitialise();
     catch_sigterm();
     cout << "Initialized GPIOs\n";
@@ -88,7 +92,8 @@ int main(int argc, char *argv[])
 		}
 	}
     closeSlave();
-
+	delete p;
+	delete config;
     return 0;
 }
 
@@ -202,7 +207,7 @@ void UploadToDomoticz(char *params)
 {
 	char domoticzUrl[400];
 	sprintf(domoticzUrl, "http://10.0.0.20:8080/json.htm?type=command&%s", params);
-	if (config.LogToConsole && config.DebugMode)
+	if (config->LogToConsole && config->DebugMode)
 		printf("Calling %s\n", domoticzUrl);
 	GetURL(domoticzUrl);
 }
@@ -244,52 +249,52 @@ void UploadTemperatureToDomoticz(int idx, float value)
 
 void CheckChangeUploadSwitch(int idx, string label)
 {
-	if (p.FieldChanged(label))
+	if (p->FieldChanged(label))
 	{
-		if (config.LogToConsole)
-			printf("%s: %s\n", label.c_str(), p.FieldValue(label));
+		if (config->LogToConsole)
+			printf("%s: %s\n", label.c_str(), p->FieldValue(label));
 		
-		if (config.LogToDomoticz)
-			UploadSwitchToDomoticz(idx, p.FieldValue(label));
+		if (config->LogToDomoticz)
+			UploadSwitchToDomoticz(idx, p->FieldValue(label));
 	}
 }
 
 void LogTemperatureFromLabel(int idx, string label, float max)
 {
-	if (p.FieldChanged(label))
+	if (p->FieldChanged(label))
 	{
-		float tempValue = atof(p.FieldValue(label));
+		float tempValue = atof(p->FieldValue(label));
 		if ((max>0.0) && (tempValue>max))
 		{
 			printf("Skipping bogus temperature %f for label %s\n", tempValue, label.c_str());
 			return;
 		}
 		
-		if (config.LogToConsole)
-			printf("%s: %s\n", label.c_str(), p.FieldValue(label));
+		if (config->LogToConsole)
+			printf("%s: %s\n", label.c_str(), p->FieldValue(label));
 		
-		if (config.LogToDomoticz)
-			UploadTemperatureToDomoticz(idx, p.FieldValue(label));
+		if (config->LogToDomoticz)
+			UploadTemperatureToDomoticz(idx, p->FieldValue(label));
 	}
 }
 
 void LogCounterFromLabel(int idx, string label)
 {
-	if (p.FieldChanged(label))
+	if (p->FieldChanged(label))
 	{
-		if (config.LogToConsole)
-			printf("%s: %s\n", label.c_str(), p.FieldValue(label));
+		if (config->LogToConsole)
+			printf("%s: %s\n", label.c_str(), p->FieldValue(label));
 		
-		if (config.LogToDomoticz)
-			UploadCounterToDomoticz(idx, p.FieldValue(label));
+		if (config->LogToDomoticz)
+			UploadCounterToDomoticz(idx, p->FieldValue(label));
 	}
 }
 
 void ParseDatalogAutotemp(unsigned char *buffer, int length)
 {
-	if (!p.ParseWithHeader(buffer, length))
+	if (!p->ParseWithHeader(buffer, length))
 	{
-		if (config.LogToConsole)
+		if (config->LogToConsole)
 			printf("Failed to parse header/checksum\n");
 		return;
 	}
@@ -327,7 +332,7 @@ void ParseDatalogAutotemp(unsigned char *buffer, int length)
 
 void ParseDatalogHeatPump(unsigned char *buffer, int length)
 {
-	if (!p.ParseWithHeader(buffer, length))
+	if (!p->ParseWithHeader(buffer, length))
 		return;
 	
 	LogTemperatureFromLabel(398, "Buitentemperatuur", 50.0);
@@ -368,7 +373,7 @@ void WriteMessageToSQLLite(unsigned char *buffer, int length)
 
 void processIncomingMessage(unsigned char *buffer, int length)
 {
-	if (config.LogToSqlLite)
+	if (config->LogToSqlLite)
 		WriteMessageToSQLLite(buffer, length);
 
 	// Then process it further
@@ -389,10 +394,10 @@ void processIncomingMessage(unsigned char *buffer, int length)
 		messagename = "Datalog";
 		sprintf(filename, "/home/pi/pislave/data/%02X%02X.txt", buffer[1], buffer[2]); // TODO: add timestamp??
 		
-		if (config.DeviceType == DEVICE_ID_WARMTEPOMP)
+		if (config->DeviceType == DEVICE_ID_WARMTEPOMP)
 			ParseDatalogHeatPump(buffer, length);
 		
-		if (config.DeviceType == DEVICE_ID_AUTOTEMP)
+		if (config->DeviceType == DEVICE_ID_AUTOTEMP)
 			ParseDatalogAutotemp(buffer, length);
 	}
 	else
@@ -402,13 +407,13 @@ void processIncomingMessage(unsigned char *buffer, int length)
 	}
 	
 	string data = bufferToReadableString(buffer, length);
-	if (config.LogToConsole)
+	if (config->LogToConsole)
 	{
 		cout << data << endl;
 	}
-	if (config.LogToFile)
+	if (config->LogToFile)
 	{
-		if (config.LogToConsole)
+		if (config->LogToConsole)
 		{
 			cout << "Writing message " << messagename << " to " << filename << endl;
 		}

@@ -11,10 +11,13 @@ public:
 	bool LogToConsole;
 	bool DebugMode;
 
-	Config();
+	Config(std::string directory);
 	void SetDefaults();
 	void ReadConfigFile();
 	void ParseOptionLine(std::string& line, const size_t& pos);
+	 
+private: 
+	std::string configdir;
 };
 
 

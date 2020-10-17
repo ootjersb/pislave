@@ -3,8 +3,9 @@
 #include <sstream>
 #include <string>
 
-Config::Config()
+Config::Config(std::string directory)
 {
+	configdir = directory;
 	SetDefaults();
 	ReadConfigFile();
 }
@@ -21,8 +22,11 @@ void Config::SetDefaults()
 
 void Config::ReadConfigFile()
 {
-	printf("Reading configuration file\n");
-	std::ifstream infile("config.txt");
+	size_t slash_pos = configdir.rfind("/");
+	std::string configfile = configdir.substr(0, slash_pos)+"/config.txt";
+	printf("Reading configuration file %s\n", configfile.c_str());
+	std::ifstream infile(configfile);
+	// std::ifstream infile("/home/pi/pislave/config.txt");
 	std::string line;
 	while (std::getline(infile, line))
 	{
