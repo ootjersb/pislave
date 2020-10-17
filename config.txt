@@ -1,0 +1,12 @@
+# Configuration options
+# !! Do not use spaces between the option = value !!
+
+# DeviceTypes 13 = WPU, 15 = Autotemp
+DeviceType=15
+
+# Next options are all boolean. At the moment case sensitive anything other than true will equal to false
+LogToFile=true
+LogToSqlLite=false
+LogToDomoticz=true
+LogToConsole=false
+DebugMode=false
