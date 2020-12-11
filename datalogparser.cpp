@@ -31,6 +31,9 @@ DatalogParser::DatalogParser(int device)
 float DatalogParser::ParseSignedIntDec2(unsigned char *buffer)
 {
     int num = ((int) buffer[0] << 8) + buffer[1];
+    if (num >= 32768) {
+        num -= 65536;
+    }
     return num / 100.0;
 }
 
