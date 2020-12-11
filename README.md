@@ -27,7 +27,8 @@ Wiring like this:
 - I2C-SDA: Raspberry Pi GPIO02 (PIN03) & GPIO18 (PIN12) to Level shifter Low (A1), Level shifter high (B1) to RJ-45 pin 7 (White/Brown)
 - I2C-SCL: Raspberry Pi GPIO19 (PIN35) & GPIO03 (PIN05) to Level shifter Low (A2), Level shifter high (B2) to RJ-45 pin 2 (Orange)
 - Raspberry Pi - GRND(PIN39) - Level shifter GRND Hi and Low - RJ45 Pin 3 (White/Green)
-- Raspberry Pi - 3.3V (PIN01) to Level shifter Low (LV), Level shifter High (HV) to RJ-45 pin 5 (White/Blue)
+- Raspberry Pi - 3.3V (PIN01) to Level shifter Low (LV), Level shifter High (HV) is unattached. The reason for this is that the RJ-45 pin 5 (White/Blue) measures around 15 volt, and a level shifter cannot handle that usually. 
+There are pull up resistors in place at WPU/Autotemp side, so they provide the pull up to the correct high level.
 ![image](https://github.com/ootjersb/pislave/blob/master/wiring-schema.png?raw=true) 
  
 # Dependencies
