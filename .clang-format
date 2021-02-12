@@ -1,0 +1,7 @@
+# clang-format configuration in `.yaml` format.
+BasedOnStyle: Google
+
+AllowShortIfStatementsOnASingleLine: false
+ColumnLimit: 100
+IndentCaseLabels: false
+DerivePointerAlignment: false

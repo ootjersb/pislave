@@ -2,11 +2,21 @@
 # !! Do not use spaces between the option = value !!
 
 # DeviceTypes 13 = WPU, 15 = Autotemp
-DeviceType=15
+DeviceType=13
+
+# Domoticicz IP address
+DomoticzIP=localhost
+
+# InfluxDB settings
+InfluxdbIP=localhost
+InfluxdbPort=8086
+InfluxdbDB=itho_wpu
 
 # Next options are all boolean. At the moment case sensitive anything other than true will equal to false
-LogToFile=true
+LogToFile=false
 LogToSqlLite=false
-LogToDomoticz=true
+LogToDomoticz=false
+LogToInfluxDB=true
 LogToConsole=false
+
 DebugMode=false

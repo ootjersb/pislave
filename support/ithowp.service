@@ -7,6 +7,7 @@ Type=simple
 ExecStart=/home/pi/pislave/pislave
 StandardOutput=syslog
 Restart=on-abort
+KillSignal=SIGTERM
 
 [Install]
 WantedBy=multi-user.target

@@ -5,17 +5,17 @@ the device to the WPU or Autotemp via UTP cable.
 
 The communication to the Itho devices works via I2C. You need both a master and a slave on the I2C bus.
 The Master is used to send requests to the WPU or Autotemp. The Slave is used to receive the answer.
-The Itho device is registered at address 0x82. The Raspberry Pi is registered at address 0x80.
+The Itho device is registered at address `0x82`. The Raspberry Pi is registered at address `0x80`.
 This project has been developed and tested with a Raspberry Pi 3B+. The Raspberry Pi Model 4 has a
 little different API, which has not been tested.
 
 The toolset:
-- pimaster.cpp: Initial attempt to send commands to the Itho devices. This one has been replaced by pimaster2.c
-- pimaster2.c: Tool that can be used to send queries (hardcoded) to the Itho device.
-- emu_autotemp.c: Simulator for Autotemp which is normally at address 0x82, can be used to test the other programs without connecting to the Itho device. Does send a datalog message
-- emu_heatpump.c: Simulator for Heat Pump which is normally at address 0x82, can be used to test the other programs without connecting to the Itho device. Does send a datalog message
-- pislave.cpp: Tool to receive the data from the Itho device. Currently some hardcoded actions are possible: Insert raw data into SQLite DB, Parse a single value and upload to Domoticz
-- pislave82.cpp: Simulator for WPU/Autotemp on receival side.
+- `pi_master/pimaster.cpp`: Initial attempt to send commands to the Itho devices. This one has been replaced by pimaster2.c
+- `pi_master/pimaster2.c`: Tool that can be used to send queries (hardcoded) to the Itho device.
+- `support/emu_autotemp.c`: Simulator for Autotemp which is normally at address 0x82, can be used to test the other programs without connecting to the Itho device. Does send a datalog message
+- `support/emu_heatpump.c`: Simulator for Heat Pump which is normally at address 0x82, can be used to test the other programs without connecting to the Itho device. Does send a datalog message
+- `pi_slave/pislave.cpp`: Tool to receive the data from the Itho device. Currently some hardcoded actions are possible: Insert raw data into SQLite DB, Parse a single value and upload to Domoticz
+- `pi_slave/pislave82.cpp`: Simulator for WPU/Autotemp on receival side.
 Other files are included with the above.
 
 This project started from this forum thread: https://www.circuitsonline.net/forum/view/65868
@@ -33,14 +33,22 @@ There are pull up resistors in place at WPU/Autotemp side, so they provide the p
  
 # Dependencies
 pislave is dependent upon:
-- Curl: sudo apt-get install libcurl4-openssl-dev
-- pigpio: sudo apt-get install pigpio python-pigpio python3-pigpio
-- Sqlite3: sudo apt-get install libsqlite3-dev
-- Enabled I2C port: sudo raspi-config. Option 5 and enable I2C.
+- Curl: `sudo apt-get install libcurl4-openssl-dev`
+- pigpio: `sudo apt-get install pigpio python-pigpio python3-pigpio`
+- Sqlite3: `sudo apt-get install libsqlite3-dev`
+- Enabled I2C port: `sudo raspi-config`. Option 5 and enable I2C.
+- CMake: `sudo apt-get install cmake`
  
 # Upload and Compile
 Upload to Raspberry Pi and compile with the instructions given in the source file itself.
 Easiest way to upload is just to clone this repository into the pi home directory.
+
+## Cmake
+Compile the whole project:
+```bash
+cmake .
+cmake --build .
+```
 
 # Configuration
 At the moment all of the settings and options are hardcoded. Most difficult configuration is probably bound to the model of the HeatPump itself. The parsing of the datalog message is model specific
@@ -50,13 +58,17 @@ Common operations works by launching first pislave and then pimaster2
 
 # Service installation
 The process can be run as system. The process reports output to console which is redirected to syslog by systemd.
-Copy file ithowp.service to /lib/systemd/system/ithowp.service.
-Reboot your Raspberry Pi.
-
-# Cron job
-You can use cron to schedule running the pimaster GetDatalog command. The crontab line for this is:
+Copy the service and timer files to `/lib/systemd/system/`.
+```bash
+cp support/*.service /lib/systemd/system/
+cp support/*.timer /lib/systemd/system/
 ```
-* * * * * /home/pi/pislave/pimaster2 97
+Afterwards enable and start the service and timer.
+```bash
+sudo systemctl enable ithowp.service
+sudo systemctl start ithowp.service
+sudo systemctl enable ithowp_request.timer
+sudo systemctl start ithowp_request.timer
 ```
 
 # Todo

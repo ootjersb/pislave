@@ -1,0 +1,10 @@
+[Unit]
+Description=Request Datalog message from Itho WPU - timer
+
+[Timer]
+OnBootSec=1m
+OnUnitActiveSec=1m
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target
