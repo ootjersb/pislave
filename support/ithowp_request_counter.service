@@ -1,0 +1,7 @@
+[Unit]
+Description=Request counters message from Itho WPU
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/home/pi/pislave/pimaster2 118

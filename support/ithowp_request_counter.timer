@@ -1,0 +1,10 @@
+[Unit]
+Description=Request counters message from Itho WPU - timer
+After=ithowp_request.timer
+
+[Timer]
+OnCalendar=daily
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target
