@@ -312,6 +312,24 @@ void LogFloatFromLabel(uint16_t /*idx*/, std::string label, std::string measurem
   }
 }
 
+void LogUint32FromLabel(uint16_t /*idx*/, std::string label, std::string measurement) {
+  uint32_t tempValue = static_cast<uint32_t>(std::stoi(p->FieldValue(label)));
+  auto current_timestamp = std::chrono::system_clock::now();
+  auto current_timestamp_ns =
+      std::chrono::duration_cast<std::chrono::nanoseconds>(current_timestamp.time_since_epoch())
+          .count();
+
+  std::stringstream influx_data;
+  influx_data << measurement << "," << p->FieldCategory(label) << "=" << p->FieldTag(label)
+              << " value=" << tempValue << " " << current_timestamp_ns;
+  if (config->LogToConsole) {
+    std::cout << label << ": " << p->FieldValue(label) << std::endl;
+  }
+  if (config->LogToInfluxDB) {
+    UploadToInfluxDB(influx_data.str());
+  }
+}
+
 void LogUint16FromLabel(uint16_t /*idx*/, std::string label, std::string measurement) {
   uint16_t tempValue = static_cast<uint16_t>(std::stoi(p->FieldValue(label)));
   auto current_timestamp = std::chrono::system_clock::now();
@@ -482,10 +500,10 @@ void ParseDatalogHeatPump(unsigned char* buffer, int length) {
   LogUint8FromLabel(42, "Fout gevonden (foutcode)", config->influx_db_datalog_table_);
   LogUint8FromLabel(97, "Warmtevraag totaal", config->influx_db_datalog_table_);
   //  // LogFloatFromLabel(606, "Vrijkoelen interval (sec)", 0.0);
-  //  LogDecimalFromLabel(55, "E-consumption stand-by");
-  //  LogDecimalFromLabel(56, "E-consumption heating");
-  //  LogDecimalFromLabel(57, "E-consumption DHW");
-  //  LogDecimalFromLabel(58, "E-consumption cooling");
+  LogUint32FromLabel(98, "E-consumption stand-by", config->influx_db_datalog_table_);
+  LogUint32FromLabel(99, "E-consumption heating", config->influx_db_datalog_table_);
+  LogUint32FromLabel(100, "E-consumption DHW", config->influx_db_datalog_table_);
+  LogUint32FromLabel(101, "E-consumption cooling", config->influx_db_datalog_table_);
 }
 
 void ParseCountersHeatPump(unsigned char* buffer, int length) {

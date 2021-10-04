@@ -90,11 +90,11 @@ class DatalogParser {
       {89, FieldType::UnsignedInt, "Vrijkoelen interval (sec)", "", ""},
       // 96 - 100
       {142, FieldType::Byte, "Warmtevraag totaal", "request", "heat_total"},
-      {143, FieldType::UnsignedInt32, "E-consumption stand-by", "", ""},
-      {147, FieldType::UnsignedInt32, "E-consumption heating", "", ""},
+      {143, FieldType::UnsignedInt32, "E-consumption stand-by", "energy", "standby"},
+      {147, FieldType::UnsignedInt32, "E-consumption heating", "energy", "heating"},
       // 101 - 105
-      {151, FieldType::UnsignedInt32, "E-consumption DHW", "", ""},
-      {153, FieldType::UnsignedInt32, "E-consumption cooling", "", ""},
+      {151, FieldType::UnsignedInt32, "E-consumption DHW", "energy", "dhw"},
+      {153, FieldType::UnsignedInt32, "E-consumption cooling", "energy", "cooling"},
   };
 
   Field autotempConfig[kFieldCountAutotemp]{
