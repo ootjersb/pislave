@@ -33,11 +33,20 @@ There are pull up resistors in place at WPU/Autotemp side, so they provide the p
  
 # Dependencies
 pislave is dependent upon:
-- Curl: `sudo apt-get install libcurl4-openssl-dev`
-- pigpio: `sudo apt-get install pigpio python-pigpio python3-pigpio`
-- Sqlite3: `sudo apt-get install libsqlite3-dev`
-- Enabled I2C port: `sudo raspi-config`. Option 5 and enable I2C.
-- CMake: `sudo apt-get install cmake`
+- libcurl
+- pigpio
+- libsqlite3
+- CMake
+
+```bash
+sudo apt-get install \
+    ibcurl4-openssl-dev \
+    pigpio \
+    libsqlite3-dev \
+    cmake
+```
+
+Enabled I2C port: `sudo raspi-config`. Option 5 and enable I2C.
  
 # Upload and Compile
 Upload to Raspberry Pi and compile with the instructions given in the source file itself.
@@ -51,10 +60,10 @@ cmake --build .
 ```
 
 # Configuration
-At the moment all of the settings and options are hardcoded. Most difficult configuration is probably bound to the model of the HeatPump itself. The parsing of the datalog message is model specific
+At the moment all of the settings and options are hardcoded. Most difficult configuration is probably bound to the model of the HeatPump itself. The parsing of the datalog message is model specific.
 
 # Run
-Common operations works by launching first pislave and then pimaster2
+Common operations works by launching first `pislave` and then `pimaster`
 
 # Service installation
 The process can be run as system. The process reports output to console which is redirected to syslog by systemd.
@@ -67,30 +76,38 @@ Afterwards enable and start the service and timer.
 ```bash
 sudo systemctl enable ithowp.service
 sudo systemctl start ithowp.service
+
 sudo systemctl enable ithowp_request.timer
 sudo systemctl start ithowp_request.timer
+
+sudo systemctl enable ithowp_request_counter.timer
+sudo systemctl start ithowp_request_counter.timer
 ```
 
 # Todo
 - [ ] Configuration options in configuration file
-- [ ] Integrating send (pimaster2) and receive (pislave) to single service.
+- [ ] Integrating send (`pimaster`) and receive (`pislave`) to single service.
 
 ## pislave
+```bash
 sudo ./pislave --debug
+```
 
-This will launch the receiver in debug mode and respond to data being send to I2C address 0x80 (which is 0x40 using 7 bit).
-Data being received is handled accoring to the setting in config.cpp. This can be logged to console, domoticz or file
+This will launch the receiver in debug mode and respond to data being send to I2C address `0x80` (which is `0x40` using 7 bit).
+Data being received is handled accoring to the setting in `config.cpp`. This can be logged to console, domoticz or file
 
 Options for control:  
-x = Exit the program and close communication  
+- x = Exit the program and close communication
 
 ## pimaster2
 After pislave has been launched you can open a second session and launch pimaster2 to execute commands:
+```bash
 ./pimaster2
+```
 
 Options for control:  
-r = GetRegelaar. This is a quite generic message that asks the connected device for its information (make, model and such), that is usually the start when you are new.  
-a = Retrieve the datalog. This is the most interesting message in the sense that it asks for the sensor read outs. The data differs per device.
+- r = GetRegelaar. This is a quite generic message that asks the connected device for its information (make, model and such), that is usually the start when you are new.  
+- a = Retrieve the datalog. This is the most interesting message in the sense that it asks for the sensor read outs. The data differs per device.
 
 Another way of starting is by adding -f and a filename. This content of this file will be translated to a byte array and send. Example content:
 ```
