@@ -65,13 +65,13 @@ void CounterParser::Parse(unsigned char* buffer, int /*length*/) {
 
     case FieldType::Byte: {
       int value = conversion::ParseByte(buffer + config[x].offset);
-//      std::cout << config[x].label << "=" << value << std::endl;
+      //      std::cout << config[x].label << "=" << value << std::endl;
       sprintf(fieldValues[x], "%d", value);
     } break;
 
     case FieldType::UnsignedInt: {
       unsigned int value = conversion::ParseUnsignedInt(buffer + config[x].offset);
-//      std::cout << config[x].label << "=" << value << std::endl;
+      //      std::cout << config[x].label << "=" << value << std::endl;
       sprintf(fieldValues[x], "%d", value);
     } break;
 

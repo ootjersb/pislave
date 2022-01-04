@@ -3,8 +3,8 @@
 #include <cstring>
 #include <iostream>
 
-#include "field.h"
 #include "conversion.h"
+#include "field.h"
 
 DatalogParser::DatalogParser(uint16_t device) {
   if (device == kDeviceIdHeatpump) {

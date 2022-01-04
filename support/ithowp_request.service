@@ -5,4 +5,3 @@ Description=Request Datalog message from Itho WPU
 Type=oneshot
 User=root
 ExecStart=/home/pi/pislave/pimaster 97
-

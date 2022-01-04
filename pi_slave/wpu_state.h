@@ -1,7 +1,12 @@
 namespace state {
 
 enum class WpState : uint16_t {
-  Init = 0, Off = 1, ChMode = 2, DhwMode = 3, FcMode = 4, VentMode = 5,
+  Init = 0,
+  Off = 1,
+  ChMode = 2,
+  DhwMode = 3,
+  FcMode = 4,
+  VentMode = 5,
 };
 
 enum class WpSubState : uint16_t {
@@ -19,7 +24,7 @@ enum class WpSubState : uint16_t {
   None = 255,
 };
 
-inline std::ostream& operator<<(std::ostream &os, const WpState &state) {
+inline std::ostream& operator<<(std::ostream& os, const WpState& state) {
   switch (state) {
   case WpState::Init:
     os << "Init";
@@ -47,7 +52,7 @@ inline std::ostream& operator<<(std::ostream &os, const WpState &state) {
   return os;
 }
 
-inline std::ostream& operator<<(std::ostream &os, const WpSubState &sub_state) {
+inline std::ostream& operator<<(std::ostream& os, const WpSubState& sub_state) {
   switch (sub_state) {
   case WpSubState::PreRun:
     os << "Pre run";

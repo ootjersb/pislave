@@ -1,58 +1,64 @@
 // gcc pimaster2.c -o pimaster2
-#include <unistd.h>         // Needed for I2C port
 #include <fcntl.h>          // Needed for I2C port
-#include <sys/ioctl.h>      // Needed for I2C port
 #include <linux/i2c-dev.h>  // Needed for I2C port
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>  // Needed for I2C port
+#include <unistd.h>     // Needed for I2C port
 
 #define I2C_ADDRESS_82 0x41  // 0x82 with 7 most significant bits
 #define I2C_ADDRESS_60 0x30  // 0x60 with 7 most significant bits
 
-const char MESSAGE_GETREGELAAR82[6] = { 0x80, 0x90, 0xE0, 0x04, 0x00, 0x8A };
+const char MESSAGE_GETREGELAAR82[6] = {0x80, 0x90, 0xE0, 0x04, 0x00, 0x8A};
 const int MESSAGE_GETREGELAAR82_LENGTH = 6;
-const char MESSAGE_OPHALENSERIENUMMER[6] = { 0x80, 0x90, 0xE1, 0x04, 0x00, 0x89 };
+const char MESSAGE_OPHALENSERIENUMMER[6] = {0x80, 0x90, 0xE1, 0x04, 0x00, 0x89};
 const int MESSAGE_OPHALENSERIENUMMER_LENGTH = 6;
-const char MESSAGE_OPHALENSETTING0[25] = { 0x80, 0xA4, 0x10, 0x04, 0x13, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x33 };
+const char MESSAGE_OPHALENSETTING0[25] = {0x80, 0xA4, 0x10, 0x04, 0x13, 0x00, 0x00, 0x00, 0x00,
+                                          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x33};
 const int MESSAGE_OPHALENSETTING0_LENGTH = 25;
-const char MESSAGE_OPHALENSETTING50[25] = { 0x80, 0xA4, 0x10, 0x04, 0x13, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x32, 0x00, 0x01 };
+const char MESSAGE_OPHALENSETTING50[25] = {0x80, 0xA4, 0x10, 0x04, 0x13, 0x00, 0x00, 0x00, 0x00,
+                                           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                           0x00, 0x00, 0x00, 0x00, 0x32, 0x00, 0x01};
 const int MESSAGE_OPHALENSETTING50_LENGTH = 25;
-const char MESSAGE_OPHALENSETTING69[25] = { 0x80, 0xA4, 0x10, 0x04, 0x13, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x45, 0x00, 0xEE };
+const char MESSAGE_OPHALENSETTING69[25] = {0x80, 0xA4, 0x10, 0x04, 0x13, 0x00, 0x00, 0x00, 0x00,
+                                           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                           0x00, 0x00, 0x00, 0x00, 0x45, 0x00, 0xEE};
 const int MESSAGE_OPHALENSETTING69_LENGTH = 25;
-const char MESSAGE_OPHALENDATATYPE[6] = { 0x80, 0xA4, 0x00, 0x04, 0x00, 0x56 };
+const char MESSAGE_OPHALENDATATYPE[6] = {0x80, 0xA4, 0x00, 0x04, 0x00, 0x56};
 const int MESSAGE_OPHALENDATATYPE_LENGTH = 6;
-const char MESSAGE_DATALOG6[6] = { 0x80, 0xA4, 0x01, 0x04, 0x00, 0x55 };
+const char MESSAGE_DATALOG6[6] = {0x80, 0xA4, 0x01, 0x04, 0x00, 0x55};
 const int MESSAGE_DATALOG6_LENGTH = 6;
-const char MESSAGE_VRAAGCONFIG[10] = { 0x80, 0xC0, 0x30, 0x04, 0x04, 0x00, 0x00, 0x00, 0x0C, 0xFA };
+const char MESSAGE_VRAAGCONFIG[10] = {0x80, 0xC0, 0x30, 0x04, 0x04, 0x00, 0x00, 0x00, 0x0C, 0xFA};
 const int MESSAGE_VRAAGCONFIG_LENGTH = 10;
-const char MESSAGE_VRAAGVENTIELAANWEZIG[10] = { 0x80, 0xC0, 0x30, 0x04, 0x04, 0x01, 0x00, 0x00, 0x03, 0x02 };
+const char MESSAGE_VRAAGVENTIELAANWEZIG[10] = {0x80, 0xC0, 0x30, 0x04, 0x04,
+                                               0x01, 0x00, 0x00, 0x03, 0x02};
 const int MESSAGE_VRAAGVENTIELAANWEZIG_LENGTH = 10;
-const char MESSAGE_VRAAGCOUNTERS[6] = { 0x80, 0xC2, 0x10, 0x04, 0x00, 0x28 };
+const char MESSAGE_VRAAGCOUNTERS[6] = {0x80, 0xC2, 0x10, 0x04, 0x00, 0x28};
 const int MESSAGE_VRAAGCOUNTERS_LENGTH = 6;
 const int MESSAGE_SENDSETTING_LENGTH = 25;
-const char MESSAGE_SENDSETTING[25] = { 0x80, 0xA4, 0x10, 0x06, 0x13, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x87, 0x00, 0xA9 };
-const char MESSAGE_C220[6] = { 0x80, 0xC2, 0x20, 0x04, 0x00, 0x18 };
+const char MESSAGE_SENDSETTING[25] = {0x80, 0xA4, 0x10, 0x06, 0x13, 0x00, 0x00, 0x00, 0x01,
+                                      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                      0x00, 0x00, 0x00, 0x00, 0x87, 0x00, 0xA9};
+const char MESSAGE_C220[6] = {0x80, 0xC2, 0x20, 0x04, 0x00, 0x18};
 const int MESSAGE_C220_LENGTH = 6;
-char ophalenSettingMessage[26] = { 0x82, 0x80, 0xA4, 0x10, 0x04, 0x13, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x33 };
-char ophalenConfigMessage[11] = { 0x82, 0x80, 0xC0, 0x30, 0x04, 0x04, 0x01, 0x00, 0x00, 0x01, 0x04 };
+char ophalenSettingMessage[26] = {0x82, 0x80, 0xA4, 0x10, 0x04, 0x13, 0x00, 0x00, 0x00,
+                                  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x33};
+char ophalenConfigMessage[11] = {0x82, 0x80, 0xC0, 0x30, 0x04, 0x04, 0x01, 0x00, 0x00, 0x01, 0x04};
 
-int SendMessage(int fd, const char *message, int length);
+int SendMessage(int fd, const char* message, int length);
 int ReadBytes(int fd, int length);
 void PrintHelp();
 char* ConstructOphalensetting(int settingNr);
-char CalculateChecksum(int length, char *buffer);
+char CalculateChecksum(int length, char* buffer);
 char* ConstructOphalenConfig(int settingNr, int counterNr);
 int OpenBus(int addr);
 void SendMessageForInput(int file_i2c, int c);
 void HandleKeyBoardInput(int file_i2c);
-int ReadInputFile(int file_i2c, char *filename);
-void ConvertHexToChar(char *hex, char *buffer);
+int ReadInputFile(int file_i2c, char* filename);
+void ConvertHexToChar(char* hex, char* buffer);
 
 #define KEY_QUESTION 63
 #define KEY_R 114
@@ -62,26 +68,27 @@ void ConvertHexToChar(char *hex, char *buffer);
 #define KEY_5 53
 #define KEY_6 54
 #define KEY_X 120
-#define KEY_D 100     // ophalen datatype
-#define KEY_UP_O 79   // ophalen autotemp settings
-#define KEY_A 97      // ophalen datalog
-#define KEY_C 99      // vraag config
-#define KEY_I 105     // vraag ventielaanwezig
-#define KEY_V 118     // vraag counters
-#define KEY_O 111     // ophalen alle settings
-#define KEY_N 110     // ophalen alle configs
-#define KEY_Z 122     // zenden setting 135
+#define KEY_D 100    // ophalen datatype
+#define KEY_UP_O 79  // ophalen autotemp settings
+#define KEY_A 97     // ophalen datalog
+#define KEY_C 99     // vraag config
+#define KEY_I 105    // vraag ventielaanwezig
+#define KEY_V 118    // vraag counters
+#define KEY_O 111    // ophalen alle settings
+#define KEY_N 110    // ophalen alle configs
+#define KEY_Z 122    // zenden setting 135
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   int file_i2c_82 = OpenBus(I2C_ADDRESS_82);
   if (file_i2c_82 < 0)
     return file_i2c_82;
 
   if (argc < 2)  // No arguments means keyboard input
-      {
+  {
     HandleKeyBoardInput(file_i2c_82);
-  } else if (argc == 2) // One argument, means the keyboard input has been placed on the command line
-      {
+  } else if (argc ==
+             2)  // One argument, means the keyboard input has been placed on the command line
+  {
     int c = atoi(argv[1]);
     SendMessageForInput(file_i2c_82, c);
     // c = getchar();
@@ -97,14 +104,14 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-int ReadInputFile(int file_i2c, char *filename) {
+int ReadInputFile(int file_i2c, char* filename) {
   int ch;
-  FILE *fp;
+  FILE* fp;
   char byteBuffer[2];
   char output[1024];
 
   printf("Reading input file %s\n", filename);
-  fp = fopen(filename, "r"); // read mode.
+  fp = fopen(filename, "r");  // read mode.
   if (fp == NULL) {
     printf("failed to open file\n");
     return 2;
@@ -154,8 +161,8 @@ int ReadInputFile(int file_i2c, char *filename) {
   return 0;
 }
 
-void ConvertHexToChar(char *hex, char *buffer) {
-  char *pos = hex;
+void ConvertHexToChar(char* hex, char* buffer) {
+  char* pos = hex;
   int length = strlen(hex) / 2;
 
   /* WARNING: no sanitization or error-checking whatsoever */
@@ -218,22 +225,23 @@ void SendMessageForInput(int file_i2c, int c) {
       printf("Send message ophalen datatype\n");
     break;
 
-  case KEY_A:	// ophalen datalog
+  case KEY_A:  // ophalen datalog
     if (SendMessage(file_i2c, MESSAGE_DATALOG6, MESSAGE_DATALOG6_LENGTH) == 0)
       printf("Send message ophalen datalog\n");
     break;
 
-  case KEY_C:	// vraag config
+  case KEY_C:  // vraag config
     if (SendMessage(file_i2c, MESSAGE_VRAAGCONFIG, MESSAGE_VRAAGCONFIG_LENGTH) == 0)
       printf("Send message vraag config\n");
     break;
 
-  case KEY_I:	// vraag ventielaanwezig
-    if (SendMessage(file_i2c, MESSAGE_VRAAGVENTIELAANWEZIG, MESSAGE_VRAAGVENTIELAANWEZIG_LENGTH) == 0)
+  case KEY_I:  // vraag ventielaanwezig
+    if (SendMessage(file_i2c, MESSAGE_VRAAGVENTIELAANWEZIG, MESSAGE_VRAAGVENTIELAANWEZIG_LENGTH) ==
+        0)
       printf("Send message vraag ventiel aanwezig\n");
     break;
 
-  case KEY_V: // vraag counters
+  case KEY_V:  // vraag counters
     if (SendMessage(file_i2c, MESSAGE_VRAAGCOUNTERS, MESSAGE_VRAAGCOUNTERS_LENGTH) == 0)
       printf("Send message vraag counters\n");
     break;
@@ -245,7 +253,7 @@ void SendMessageForInput(int file_i2c, int c) {
         printf("Send message Ophalensetting(%d)\n", i);
       else
         break;
-      sleep(5);	// 1 second
+      sleep(5);  // 1 second
     }
     break;
 
@@ -256,7 +264,7 @@ void SendMessageForInput(int file_i2c, int c) {
         printf("Send message Ophalensetting(%d)\n", i);
       else
         break;
-      sleep(5);	// 1 second
+      sleep(5);  // 1 second
     }
     break;
 
@@ -267,7 +275,7 @@ void SendMessageForInput(int file_i2c, int c) {
         printf("Send message OphalenConfig(1, %d)\n", i);
       else
         break;
-      sleep(5);	// 1 second
+      sleep(5);  // 1 second
     }
     for (int i = 0; i <= 0x29; i++) {
       ConstructOphalenConfig(0, i);
@@ -275,16 +283,16 @@ void SendMessageForInput(int file_i2c, int c) {
         printf("Send message OphalenConfig(0, %d)\n", i);
       else
         break;
-      sleep(5);	// 1 second
+      sleep(5);  // 1 second
     }
     break;
 
-  case KEY_Z: // zenden setting
+  case KEY_Z:  // zenden setting
     if (SendMessage(file_i2c, MESSAGE_SENDSETTING, MESSAGE_SENDSETTING_LENGTH) == 0)
       printf("Send message to set setting 134\n");
     break;
 
-  case (int) 'q':
+  case (int)'q':
     if (SendMessage(file_i2c, MESSAGE_C220, MESSAGE_C220_LENGTH) == 0)
       printf("Send message C2 20\n");
     break;
@@ -293,7 +301,7 @@ void SendMessageForInput(int file_i2c, int c) {
     printf("Stopping\n");
     break;
 
-  case 10:	// ignore the return
+  case 10:  // ignore the return
     break;
 
   default:
@@ -305,16 +313,16 @@ void SendMessageForInput(int file_i2c, int c) {
 int OpenBus(int addr) {
   //----- OPEN THE I2C BUS for specified slave -----
   int file_i2c;
-  char *filename = (char*) "/dev/i2c-1";
+  char* filename = (char*)"/dev/i2c-1";
   if ((file_i2c = open(filename, O_RDWR)) < 0) {
-    //ERROR HANDLING: you can check errno to see what went wrong
+    // ERROR HANDLING: you can check errno to see what went wrong
     printf("Failed to open the i2c bus");
     return -1;
   }
 
   if (ioctl(file_i2c, I2C_SLAVE, addr) < 0) {
     printf("Failed to acquire bus access and/or talk to slave.\n");
-    //ERROR HANDLING; you can check errno to see what went wrong
+    // ERROR HANDLING; you can check errno to see what went wrong
     return -1;
   }
   return file_i2c;
@@ -341,7 +349,7 @@ void PrintHelp() {
   printf("x = Exit\n");
 }
 
-int SendMessage(int fd, const char *message, int length) {
+int SendMessage(int fd, const char* message, int length) {
   //----- WRITE BYTES -----
   // The first byte is the destination address, so can be skipped.
 
@@ -380,21 +388,21 @@ int ReadBytes(int fd, int length) {
 char* ConstructOphalenConfig(int settingNr, int counterNr) {
   // data byte 0 is called settingNr
   // data byte 2 is called counterNr
-  ophalenConfigMessage[6 + 0] = (char) settingNr;
-  ophalenConfigMessage[6 + 2] = (char) counterNr;
+  ophalenConfigMessage[6 + 0] = (char)settingNr;
+  ophalenConfigMessage[6 + 2] = (char)counterNr;
   ophalenConfigMessage[10] = CalculateChecksum(10, ophalenConfigMessage);
 }
 
 char* ConstructOphalensetting(int settingNr) {
-  ophalenSettingMessage[17 + 6] = (char) settingNr;
+  ophalenSettingMessage[17 + 6] = (char)settingNr;
   ophalenSettingMessage[25] = CalculateChecksum(25, ophalenSettingMessage);
 }
 
-char CalculateChecksum(int length, char *buffer) {
+char CalculateChecksum(int length, char* buffer) {
   int total = 0;
 
   for (int i = 0; i < length; i++) {
-    total += (int) buffer[i];
+    total += (int)buffer[i];
   }
 
   int checksum = 256 - (total % 256);
@@ -402,5 +410,5 @@ char CalculateChecksum(int length, char *buffer) {
   if (checksum == 256) {
     checksum = 0;
   }
-  return (char) checksum;
+  return (char)checksum;
 }
