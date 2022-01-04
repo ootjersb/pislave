@@ -1,0 +1,57 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+default_language_version:
+    # force all unspecified python hooks to run python3
+    python: python3
+repos:
+    - repo: https://github.com/pre-commit/pre-commit-hooks
+      rev: v4.0.1
+      hooks:
+          - id: check-ast
+          - id: check-case-conflict
+          - id: check-executables-have-shebangs
+          - id: check-json
+          - id: check-shebang-scripts-are-executable
+          - id: check-merge-conflict
+          - id: check-symlinks
+          - id: check-toml
+          - id: check-vcs-permalinks
+          - id: check-yaml
+            args: [--allow-multiple-documents]
+          - id: destroyed-symlinks
+          - id: detect-aws-credentials
+            args: [--allow-missing-credentials]
+          - id: detect-private-key
+          - id: end-of-file-fixer
+          - id: fix-byte-order-marker
+          - id: mixed-line-ending
+            args: [--fix=lf]
+            exclude: '.*\.(bat|cmd|ps1)'
+          - id: mixed-line-ending
+            args: [--fix=crlf]
+            files: '.*\.(bat|cmd|ps1)'
+          - id: no-commit-to-branch
+          - id: requirements-txt-fixer
+    - repo: https://github.com/jumanjihouse/pre-commit-hooks
+      # Requires installation of additional tool. Tool is available on Windows.
+      # shfmt: https://github.com/mvdan/sh/releases
+      rev: 2.1.5
+      hooks:
+          - id: shfmt
+            args: [-w, -s]
+    - repo: https://github.com/doublify/pre-commit-clang-format
+      # Requires to be run under `bash`.
+      # Requires installation of additional tool. Tool is available on Windows.
+      # clang-format: sudo apt install clang-format
+      # Some `.m` files are matlab specific and are incorrectly changed.
+      # Configuration file: .clang-format
+      rev: 62302476d0da01515660132d76902359bed0f782
+      hooks:
+          - id: clang-format
+            args: [-style=file]
+            files: (?i)\.(c|cpp|cc|cxx|c\+\+|m|mm|h|hpp|hh|hxx|h\+\+)$
+            types: [file]
+    - repo: https://github.com/iconmaster5326/cmake-format-pre-commit-hook
+      rev: v0.6.9
+      hooks:
+          - id: cmake-format
